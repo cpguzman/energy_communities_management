@@ -1,0 +1,22 @@
+{ 
+
+    "P_PV_max": 10.0,
+    "P_D_max": 5.0,
+    "P_SE_max" : 20.0,
+    "P_ESS_max" : 5.0,
+    "E_ESS_max" : 10.0,
+    "P_load_max" : 5.0, 
+    "E0" : 2.5,
+    "delta" : 0.083,
+    "custo_venda" : 0.5,
+    "custo_compra" : 1.0,
+    "custo_load" : 2.0,
+
+    "rho" : 1,
+    "epsilon"  : 10e-5,
+    "iter": 0,
+    "tol_lambda": 1,
+    "tol_var":1
+
+    
+}
