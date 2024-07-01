@@ -1,5 +1,12 @@
-#**************************************Data********************
+#**************************************************************
+#                        Import packages
+#**************************************************************
 import pandas as pd
+import pyomo.environ as pyo
+#import numpy as np
+#**************************************************************
+#                        Data definition
+#**************************************************************
 General_Information_Data_excel = pd.ExcelFile("Data/General_Information Data.xlsx")
 df_P_Max_Imp = General_Information_Data_excel.parse("1 P Max_Imp (kW)",index_col=0)
 df_P_Max_Exp = General_Information_Data_excel.parse("2 P Max_Exp (kW)",index_col=0)
@@ -51,14 +58,23 @@ dict_Pgen_Cost = df_GenCost.to_dict()
 dict_CostGenerationExcess = df_CostGenerationExcess.to_dict()
 dict_GenCharacteritics = df_GenCharacteritics.to_dict()
 
-ChargeStation_Data_excel =  pd.ExcelFile("Data/ChargeStation_Data.xlsx")
+ChargeStation_Data_excel = pd.ExcelFile("Data/ChargeStation_Data.xlsx")
 df_PcsChargeLimit = ChargeStation_Data_excel.parse("1 P Charge Limit (kW)",index_col=0)
 df_CS_Characteritics = ChargeStation_Data_excel.parse("3 Characteritics D.",index_col=0)
 dict_PcsChargeLimit = df_PcsChargeLimit.to_dict()
 dict_CS_Characteritics = df_CS_Characteritics.to_dict()
 
+#**************************************************************
+#                        Sets definition
+#**************************************************************
 
-
+model = pyo.ConcreteModel()
+model.SetTimeIntervals = pyo.Set(initialize=df_Pload_Forecast.columns, doc='Set of time intervals')
+model.LoadSet = pyo.Set(initialize=df_Pload_Forecast.index, doc='Set of Loads')
+model.GenSet = pyo.Set(initialize=df_Pgen_Forecast.index, doc='Set of Generatos')
+model.BatterySet = pyo.Set(initialize=df_PstorageChargeLimit.index, doc='Set of Energy Storage System')
+model.V2G_Set = pyo.Set(initialize=df_V2G_Characteritics.index, doc='Set of Electric Vehicles')
+model.ChargeStation_Set = pyo.Set(initialize=df_CS_Characteritics.index, doc='Set of Charge Station')
 
 
 
