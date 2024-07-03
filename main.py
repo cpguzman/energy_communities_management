@@ -123,6 +123,34 @@ def ParamPGenForecast_g_t(model, generator, time):
 def ParamPGenCost_g_t(model, generator, time):
   return dict_Pgen_Cost[time][generator]
 
+@model.Param(model.GenSet, model.SetTimeIntervals)
+def ParamPGenExcessCost_g_t(model, generator, time):
+  return dict_CostGenerationExcess[time][generator]
+
+@model.Param(model.GenSet)
+def Param_P_MinGen_g(model, gen):
+  return dict_GenCharacteritics['7 P Min. (kW)'][gen]
+
+@model.Param(model.GenSet)
+def Param_P_MaxGen_g(model, gen):
+  return dict_GenCharacteritics['6 P Max. (kW)'][gen]
+
+@model.Param(model.SetTimeIntervals)
+def Param_P_MaxImp_t(model, time):
+  return dict_P_Max_Imp[time]['PCC_0']
+
+@model.Param(model.SetTimeIntervals)
+def Param_P_MaxExp_t(model, time):
+  return dict_P_Max_Exp[time]['PCC_0']
+
+@model.Param(model.SetTimeIntervals)
+def Param_C_ImpPrice_t(model, time):
+  return dict_C_PImp_Price[time]['PCC_0']
+
+@model.Param(model.SetTimeIntervals)
+def Param_C_ExpPrice_t(model, time):
+  return dict_C_PExp_Price[time]['PCC_0']
+
 
 
 
