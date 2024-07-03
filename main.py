@@ -151,12 +151,23 @@ def Param_C_ImpPrice_t(model, time):
 def Param_C_ExpPrice_t(model, time):
   return dict_C_PExp_Price[time]['PCC_0']
 
-
-
-
-
-
-
+#**************************************************************
+#                        Variables definition
+#**************************************************************
+model.VarPimp_t =  pyo.Var(model.SetTimeIntervals, within = pyo.NonNegativeReals, initialize = 0)
+model.VarPexp_t = pyo.Var(model.SetTimeIntervals, within = pyo.NonNegativeReals, initialize = 0)
+model.VarPgen_g_t = pyo.Var(model.GenSet, model.SetTimeIntervals, initialize = 0)
+model.VarPgenExcess_g_t = pyo.Var(model.GenSet, model.SetTimeIntervals, initialize = 0)
+model.XstorageCharge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, domain = pyo.Binary, initialize = 0)
+model.XstorageDischarge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, domain = pyo.Binary, initialize = 0)
+model.VarEnergyStorage_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, initialize = 0)
+model.VarPstorageCharge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, initialize = 0)
+model.VarPstorageDischarge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, initialize = 0)
+model.Xv2gCharge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, domain = pyo.Binary, initialize = 0)
+model.Xv2gDischarge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, domain = pyo.Binary, initialize = 0)
+model.VarEnergyV2G_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, initialize = 0)
+model.VarPv2gCharge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals,initialize = 0)
+model.VarPv2gDischarge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, initialize = 0)
 
 print("fin")
 
