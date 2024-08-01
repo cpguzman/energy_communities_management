@@ -19,7 +19,8 @@ class Data:
             'host': 'db.tecnico.ulisboa.pt',
             'user': 'ist1100103',
             'password': 'ozgo1085',
-            'database': 'ist1100103'
+            'database': 'ist1100103',
+            'ssl_disabled': True
         }
     
     def get_data(self):
