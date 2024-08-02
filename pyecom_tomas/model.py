@@ -3,9 +3,17 @@ import pyomo.environ as pe
 from build_data import convert_to_dictionary
 import matplotlib.pyplot as plt
 import os
+import pandas as pd
+
 #Functions to the model
 # Set default behaviour
 default_behaviour = pe.Constraint.Skip
+
+
+project_colors = {"green": "#58c1ae", "blue": "#0e73b9", "lightgreen": "#cdd451",
+                  "babyblue": "#5ebcea", "orange": "#e58033", "yellow": "#eacf5e",
+                  "raw": "#ece9d6"}
+project_colors_list = ["#58c1ae", "#0e73b9", "#cdd451", "#5ebcea", "#e58033","#eacf5e","#ece9d6"] 
 
 def _impMaxEq(m, t):
     return m.imports[t] <= m.impMax[t]
@@ -490,6 +498,8 @@ def def_charging_stations(data, model, i=1, init=False):
 
     return model
 
+
+
 def plot_profile(
     result_genActPower,
     result_storDchActPower,
@@ -519,13 +529,13 @@ def plot_profile(
     
     y7 = result_pimp.values.reshape(model.t.last()-model.t.first()+1)
 
-    axs[0].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color='skyblue', label="Generators")
-    axs[0].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color='green', label="Storage")
-    axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color='teal', label="V2G")
-    axs[0].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color='yellow', label="Load Reduction")
-    axs[0].fill_between(list(range(1, len(y5)+1)), y1 + y2 + y3 + y4, y1 + y2 + y3 + y4 + y5, color='orange', label="Load Cut")
-    axs[0].fill_between(list(range(1, len(y6)+1)), y1 + y2 + y3 + y4 + y5, y1 + y2 + y3 + y4 + y5 + y6, color='red', label="Load ENS")
-    axs[0].fill_between(list(range(1, len(y7)+1)), y1 + y2 + y3 + y4 + y5 + y6, y1 + y2 + y3 + y4 + y5 + y6 + y7, color='purple', label="Imports")
+    axs[0].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Generators")
+    axs[0].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Storage")
+    axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="V2G")
+    axs[0].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="Load Reduction")
+    axs[0].fill_between(list(range(1, len(y5)+1)), y1 + y2 + y3 + y4, y1 + y2 + y3 + y4 + y5, color=project_colors_list[4], label="Load Cut")
+    axs[0].fill_between(list(range(1, len(y6)+1)), y1 + y2 + y3 + y4 + y5, y1 + y2 + y3 + y4 + y5 + y6, color=project_colors_list[5], label="Load ENS")
+    axs[0].fill_between(list(range(1, len(y7)+1)), y1 + y2 + y3 + y4 + y5 + y6, y1 + y2 + y3 + y4 + y5 + y6 + y7, color=project_colors_list[6], label="Imports")
     axs[0].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4 + y5 + y6 + y7))
     axs[0].set_xlabel('Time [h]')
     axs[0].set_ylabel('Power [kW]')
@@ -538,10 +548,10 @@ def plot_profile(
     y3 = sum([result_storChActPower.values[i] for i in range(model.stor.last())])
     y4 = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())])
 
-    axs[1].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color='indigo', label="Load")
-    axs[1].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color='limegreen', label="Gen Excess")
-    axs[1].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color='green', label="Storage")
-    axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color='teal', label="V2G")
+    axs[1].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Load")
+    axs[1].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Gen Excess")
+    axs[1].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="Storage")
+    axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="V2G")
     axs[1].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4))
     axs[1].set_xlabel('Time [h]')
     axs[1].set_ylabel('Power [kW]')
@@ -562,6 +572,69 @@ def plot_profile(
         plt.savefig(full_path, dpi=300, bbox_inches='tight')
     
     plt.show()
+
+#@TODO ADDED BY LARISSA:
+
+def export_profile_to_excel(
+    result_genActPower,
+    result_storDchActPower,
+    result_v2gDchActPower,
+    result_loadRedActPower,
+    result_loadCutActPower,
+    result_loadENS,
+    result_pimp,
+    model,
+    Data,
+    result_genExcActPower,
+    result_storChActPower,
+    result_v2gChActPower,
+    path,
+    name
+):
+    # True Production
+    y1_prod = sum([result_genActPower.values[i].astype(float) for i in range(model.gen.last())]) 
+    y2_prod = sum([result_storDchActPower.values[i] for i in range(model.stor.last())])
+    y3_prod = sum([result_v2gDchActPower.values[i] for i in range(model.v2g.last())])
+    y4_prod = sum([result_loadRedActPower.values[i] for i in range(model.loads.last())])
+    y5_prod = sum([result_loadCutActPower.values[i] for i in range(model.loads.last())])
+    y6_prod = sum([result_loadENS.values[i] for i in range(model.loads.last())])
+    y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1)
+    
+    # True Consumption
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64)
+    y2_cons = sum([result_genExcActPower.values[i] for i in range(model.gen.last())])
+    y3_cons = sum([result_storChActPower.values[i] for i in range(model.stor.last())])
+    y4_cons = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())])
+    
+    # Creating Production Dataframe
+    df_production = pd.DataFrame({
+        'Time [h]': list(range(1, len(y1_prod) + 1)),
+        'Generators': y1_prod,
+        'Storage': y2_prod,
+        'V2G': y3_prod,
+        'Load Reduction': y4_prod,
+        'Load Cut': y5_prod,
+        'Load ENS': y6_prod,
+        'Imports': y7_prod
+    })
+    
+    # Creating Consumption Dataframe
+    df_consumption = pd.DataFrame({
+        'Time [h]': list(range(1, len(y1_cons) + 1)),
+        'Load': y1_cons,
+        'Gen Excess': y2_cons,
+        'Storage': y3_cons,
+        'V2G': y4_cons
+    })
+
+    full_path = os.path.join(path, name)
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    with pd.ExcelWriter(full_path, engine='openpyxl') as writer:
+        df_production.to_excel(writer, sheet_name='Production', index=False)
+        df_consumption.to_excel(writer, sheet_name='Consumption', index=False)
 
 def store_results(hour, results_dict,
                   result_pimp, result_pexp, result_genActPower, result_genExcActPower, 
