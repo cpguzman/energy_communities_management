@@ -19,13 +19,18 @@ _time_step = 60 # -> Change time step
 _update_forecast = False # -> True to have forecast updat in the operation
 _save_plots = False # -> True to save the plots
 
-conf = dotenv.dotenv_values()
-path_to_solver = conf["PATH_TO_SOLVER"]
-
 #Comentarios sobre performance de dias
 #Dia 6 corre rapido
 #ao fim do dia 13 as previsões sao maiores do q o consumo real
 #dia 16/17 é um exemplo de uma pessima previsão
+
+conf = dotenv.dotenv_values()
+path_to_solver = conf["PATH_TO_SOLVER"]
+
+project_colors = {"green": "#58c1ae", "blue": "#0e73b9", "lightgreen": "#cdd451",
+                  "babyblue": "#5ebcea", "orange": "#e58033", "yellow": "#eacf5e",
+                  "raw": "#ece9d6"}
+project_colors_list = ["#58c1ae", "#0e73b9", "#cdd451", "#5ebcea", "#e58033","#eacf5e","#ece9d6"] 
 
 #Build forecat data
 Data_forecast = build_data.Data()  # Create data object -> This object will store all the data from the excel
@@ -40,17 +45,6 @@ Data_forecast.increase_number_of_charging_station(factor=3)
 Data_forecast.increase_number_of_vehicle(factor=2)
 Data_forecast.creat_new_cs_schedual()
 print("(#CS, #VE, #Time-Steps) -> ", Data_forecast.get_data().vehicle['schedule_cs_usage'].shape)
-
-fig, axes = plt.subplots(3, 3, figsize=(10, 10))
-
-for i in range(9):
-    ax = axes[i//3, i%3]
-    ax.imshow(Data_forecast.get_data().vehicle['schedule_cs_usage'][i], aspect='auto', cmap='viridis')
-    ax.set_title(f'Charging Station {i+1}')
-    ax.set_xlabel('Time Step')
-    ax.set_ylabel('Vehicle')
-plt.tight_layout()
-plt.show()
 
 # Create the model for the forecast
 model_forecast = m.creat_model(Data_forecast.get_data(), end = 24*60//_time_step+1)
@@ -79,43 +73,123 @@ results_forecast = solver_forecast.solve(model_forecast)
 objective_value = pe.value(model_forecast.objFn)
 print(f"The value of the objective function is: {objective_value}")
 
-#  Result extraction
+#  Result extraction - Saving the results on CSVs:
+
+folder = 'results_forecast'
+
+if not os.path.exists(folder):
+    os.makedirs(folder)
 
 # Generation
+if not os.path.exists(folder + '/generation/'):
+    os.makedirs(folder + '/generation/')
+
 result_genActPower = ext_pyomo_vals(model_forecast.genActPower)
+result_genActPower.to_csv(folder + '/generation/result_genActPower.csv')
+
 result_genExcActPower = ext_pyomo_vals(model_forecast.genExcPower)
+result_genExcActPower.to_csv(folder + '/generation/result_genExcActPower.csv')
+
 # Imports/Exports
+if not os.path.exists(folder + '/power/'):
+    os.makedirs(folder + '/power/')
+
 result_pimp= ext_pyomo_vals(model_forecast.imports)
+result_pimp.to_csv(folder + '/power/result_pimp.csv')
+
 result_pexp = ext_pyomo_vals(model_forecast.exports)
+result_pexp.to_csv(folder + '/power/result_pexp.csv')
+
 # Loads
+if not os.path.exists(folder + '/loads/'):
+    os.makedirs(folder + '/loads/')
+
 result_loadRedActPower = ext_pyomo_vals(model_forecast.loadRedActPower)
+result_loadRedActPower.to_csv(folder + '/loads/result_loadRedActPower.csv')
+
 result_loadCutActPower = ext_pyomo_vals(model_forecast.loadCutActPower)
+result_loadCutActPower.to_csv(folder + '/loads/result_loadCutActPower.csv')
+
 result_loadENS = ext_pyomo_vals(model_forecast.loadENS)
+result_loadENS.to_csv(folder + '/loads/result_loadENS.csv')
+
 # Storage
+if not os.path.exists(folder + '/storage/'):
+    os.makedirs(folder + '/storage/')
+    
 result_storDchActPower = ext_pyomo_vals(model_forecast.storDischarge)
+result_storDchActPower.to_csv(folder + '/storage/result_storDchActPower.csv')
+
 result_storChActPower = ext_pyomo_vals(model_forecast.storCharge)
+result_storChActPower.to_csv(folder + '/storage/result_storChActPower.csv')
+
 result_storEnerState = ext_pyomo_vals(model_forecast.storState)
+result_storEnerState.to_csv(folder + '/storage/result_storEnerState.csv')
+
 result_storRelax = ext_pyomo_vals(model_forecast.storRelax)
+result_storRelax.to_csv(folder + '/storage/result_storRelax.csv')
+
 result_storScheduleChRelax = ext_pyomo_vals(model_forecast.storScheduleChRelax)
+result_storScheduleChRelax.to_csv(folder + '/storage/result_storScheduleChRelax.csv')
+
 result_storScheduleDchRelax = ext_pyomo_vals(model_forecast.storScheduleDchRelax)
+result_storScheduleDchRelax.to_csv(folder + '/storage/result_storScheduleDchRelax.csv')
+
 # V2G
+if not os.path.exists(folder + '/v2g/'):
+    os.makedirs(folder + '/v2g/')
+    
 result_v2gDchActPower = ext_pyomo_vals(model_forecast.v2gDischarge)
+result_v2gDchActPower.to_csv(folder + '/v2g/result_v2gDchActPower.csv')
+
 result_v2gChActPower = ext_pyomo_vals(model_forecast.v2gCharge)
+result_v2gChActPower.to_csv(folder + '/v2g/result_v2gChActPower.csv')
+
 result_v2gEnerState = ext_pyomo_vals(model_forecast.v2gState)
+result_v2gEnerState.to_csv(folder + '/v2g/result_v2gEnerState.csv')
+
 result_v2gRelax = ext_pyomo_vals(model_forecast.v2gRelax)
+result_v2gRelax.to_csv(folder + '/v2g/result_v2gRelax.csv')
+
 result_v2gScheduleChRelax = ext_pyomo_vals(model_forecast.v2gScheduleChRelax)
+result_v2gScheduleChRelax.to_csv(folder + '/v2g/result_v2gScheduleChRelax.csv')
+
 result_v2gScheduleDchRelax = ext_pyomo_vals(model_forecast.v2gScheduleDchRelax)
+result_v2gScheduleDchRelax.to_csv(folder + '/v2g/result_v2gScheduleDchRelax.csv')
+
+
 # Charging Stations
+if not os.path.exists(folder + '/cs/'):
+    os.makedirs(folder + '/cs/')
+   
 result_csActPower = ext_pyomo_vals(model_forecast.csCharge)
+result_csActPower.to_csv(folder + '/cs/result_csActPower.csv')
+
 result_csActPowerNet = ext_pyomo_vals(model_forecast.csNetCharge)
+result_csActPowerNet.to_csv(folder + '/cs/result_csActPowerNet.csv')
+
 
 # Booleans
+if not os.path.exists(folder + '/bool/'):
+    os.makedirs(folder + '/bool/')
+ 
 result_genXo = ext_pyomo_vals(model_forecast.genXo)
+result_genXo.to_csv(folder + '/bool/result_genXo.csv')
+
 result_loadXo = ext_pyomo_vals(model_forecast.loadXo)
+result_loadXo.to_csv(folder + '/bool/result_loadXo.csv')
+
 result_storDchXo = ext_pyomo_vals(model_forecast.storDchXo)
+result_storDchXo.to_csv(folder + '/bool/result_storDchXo.csv')
+
 result_storChXo = ext_pyomo_vals(model_forecast.storChXo)
+result_storChXo.to_csv(folder + '/bool/result_storChXo.csv')
+
 result_v2gDchXo= ext_pyomo_vals(model_forecast.v2gDchXo)
+result_v2gDchXo.to_csv(folder + '/bool/result_v2gDchXo.csv')
+
 result_v2gChXo = ext_pyomo_vals(model_forecast.v2gChXo)
+result_v2gChXo.to_csv(folder + '/bool/result_v2gChXo.csv')
 
 m.plot_profile(result_genActPower,
     result_storDchActPower,
@@ -131,18 +205,37 @@ m.plot_profile(result_genActPower,
     result_v2gChActPower,
     save = _save_plots, path=f'plots/{_specific_date}', name = f'forecast-{_specific_date}-step-{_time_step}')
 
-# PLot the results of the eletric vehicles and charging stations
+# This function put on a excel all the data that was ploted on the previous part (plot_profile function)
+m.export_profile_to_excel(
+    result_genActPower,
+    result_storDchActPower,
+    result_v2gDchActPower,
+    result_loadRedActPower,
+    result_loadCutActPower,
+    result_loadENS,
+    result_pimp,
+    model_forecast,
+    Data_forecast,
+    result_genExcActPower,
+    result_storChActPower,
+    result_v2gChActPower,
+    path='./results_forecast',  
+    name='profile_data.xlsx'   
+)
+
+# Plot the results of the eletric vehicles and charging stations
 if result_v2gEnerState.values.shape[0] == 5:
     fig, axs = plt.subplots(nrows=5, ncols=2, figsize=(12, 5))
-
+    #Plot perfil individual
     for i in range(result_csActPower.values.shape[0]):
-        axs[i, 0].plot(result_csActPower.values[i])
+        axs[i, 0].plot(result_csActPower.values[i], color=project_colors["blue"])
     for i in range(result_v2gEnerState.values.shape[0]):
-        axs[i, 1].plot(result_v2gEnerState.values[i])
+        axs[i, 1].plot(result_v2gEnerState.values[i], color=project_colors["green"])
 else:
+    #Plot a soma
     fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))  
-    axs[0].plot(np.sum(result_csActPower.values, axis=0))
-    axs[1].plot(np.sum(result_v2gChActPower.values, axis=0))  
+    axs[0].plot(np.sum(result_csActPower.values, axis=0), color=project_colors["blue"])
+    axs[1].plot(np.sum(result_v2gChActPower.values, axis=0), color=project_colors["green"])  
     
 fig.suptitle('Charging Sations                                    Eletric Vehicles ', fontsize=16)
 plt.tight_layout()
@@ -192,42 +285,107 @@ results_true_true = solver_true_true.solve(model_true_true)
 objective_value = pe.value(model_true_true.objFn)
 print(f"The value of the objective function is: {objective_value}")
 
-#  Result extraction
+#  Result extraction - Saving the results on CSVs:
+
+folder = 'results_real'
+
+if not os.path.exists(folder):
+    os.makedirs(folder)
 
 # Generation
+
+if not os.path.exists(folder + '/generation/'):
+    os.makedirs(folder + '/generation/')
+
 result_genActPower_true_true = ext_pyomo_vals(model_true_true.genActPower)
+result_genActPower_true_true.to_csv(folder + '/generation/result_genActPower.csv')
+
 result_genExcActPower_true_true = ext_pyomo_vals(model_true_true.genExcPower)
+result_genExcActPower_true_true.to_csv(folder + '/generation/result_genExcActPower.csv')
+
 
 # Imports/Exports
+if not os.path.exists(folder + '/power/'):
+    os.makedirs(folder + '/power/')
+    
 result_pimp_true_true = ext_pyomo_vals(model_true_true.imports)
+result_pimp_true_true.to_csv(folder + '/power/result_pimp.csv')
+
 result_pexp_true_true = ext_pyomo_vals(model_true_true.exports)
+result_pexp_true_true.to_csv(folder + '/power/result_pexp.csv')
 
 # Loads
+if not os.path.exists(folder + '/loads/'):
+    os.makedirs(folder + '/loads/')
+
 result_loadRedActPower_true_true = ext_pyomo_vals(model_true_true.loadRedActPower)
+result_loadRedActPower_true_true.to_csv(folder + '/loads/result_loadRedActPower.csv')
+
 result_loadCutActPower_true_true = ext_pyomo_vals(model_true_true.loadCutActPower)
+result_loadCutActPower_true_true.to_csv(folder + '/loads/result_loadCutActPower.csv')
+
 result_loadENS_true_true = ext_pyomo_vals(model_true_true.loadENS)
+result_loadENS_true_true.to_csv(folder + '/loads/result_loadENS.csv')
+
 
 # Storage
+if not os.path.exists(folder + '/storage/'):
+    os.makedirs(folder + '/storage/')
+
 result_storDchActPower_true_true = ext_pyomo_vals(model_true_true.storDischarge)
+result_storDchActPower_true_true.to_csv(folder + '/storage/result_storDchActPower.csv')
+
 result_storChActPower_true_true = ext_pyomo_vals(model_true_true.storCharge)
+result_storChActPower_true_true.to_csv(folder + '/storage/result_storChActPower.csv')
+
 result_storEnerState_true_true = ext_pyomo_vals(model_true_true.storState)
+result_storEnerState_true_true.to_csv(folder + '/storage/result_storEnerState.csv')
 
 # V2G
+if not os.path.exists(folder + '/v2g/'):
+    os.makedirs(folder + '/v2g/')
+
 result_v2gDchActPower_true_true = ext_pyomo_vals(model_true_true.v2gDischarge)
+result_v2gDchActPower_true_true.to_csv(folder + '/v2g/result_v2gDchActPower.csv')
+
 result_v2gChActPower_true_true = ext_pyomo_vals(model_true_true.v2gCharge)
+result_v2gChActPower_true_true.to_csv(folder + '/v2g/result_v2gChActPower.csv')
+
 result_v2gEnerState_true_true = ext_pyomo_vals(model_true_true.v2gState)
+result_v2gEnerState_true_true.to_csv(folder + '/v2g/result_v2gEnerState.csv')
 
 # Charging Stations
+if not os.path.exists(folder + '/cs/'):
+    os.makedirs(folder + '/cs/')
+
 result_csActPower_true_true = ext_pyomo_vals(model_true_true.csCharge)
+result_csActPower_true_true.to_csv(folder + '/cs/result_csActPower.csv')
+
 result_csActPowerNet_true_true = ext_pyomo_vals(model_true_true.csNetCharge)
+result_csActPowerNet_true_true.to_csv(folder + '/cs/result_csActPowerNet.csv')
+
 
 # Booleans
+if not os.path.exists(folder + '/bool/'):
+    os.makedirs(folder + '/bool/')
 result_genXo_true_true = ext_pyomo_vals(model_true_true.genXo)
+result_genXo_true_true.to_csv(folder + '/bool/result_genXo.csv')
+
 result_loadXo_true_true = ext_pyomo_vals(model_true_true.loadXo)
+result_loadXo_true_true.to_csv(folder + '/bool/result_loadXo.csv')
+
 result_storDchXo_true_true = ext_pyomo_vals(model_true_true.storDchXo)
+result_storDchXo_true_true.to_csv(folder + '/bool/result_storDchXo.csv')
+
 result_storChXo_true_true = ext_pyomo_vals(model_true_true.storChXo)
+result_storChXo_true_true.to_csv(folder + '/bool/result_storChXo.csv')
+
 result_v2gDchXo_true_true = ext_pyomo_vals(model_true_true.v2gDchXo)
+result_v2gDchXo_true_true.to_csv(folder + '/bool/result_v2gDchXo.csv')
+
 result_v2gChXo_true_true = ext_pyomo_vals(model_true_true.v2gChXo)
+result_v2gChXo_true_true.to_csv(folder + '/bool/result_v2gChXo.csv')
+
 
 m.plot_profile(result_genActPower=result_genActPower_true_true, result_storDchActPower = result_storDchActPower_true_true,
                result_v2gDchActPower=result_v2gDchActPower_true_true, result_loadRedActPower=result_loadRedActPower_true_true,
@@ -362,7 +520,7 @@ for i in range(1, 24*60//_time_step+1):
     # m.plot_profile(result_genActPower,result_storDchActPower, result_v2gDchActPower,result_loadRedActPower,result_loadCutActPower,
     # result_loadENS,result_pimp, model_at_time,Data_at_time, result_genExcActPower, result_storChActPower, result_v2gChActPower, i)
 
-#Plot the operation of the community results
+    #Plot the operation of the community results
 
 result_genActPower = np.array([results_dict[hour]['genActPowerInit'] for hour in sorted(results_dict.keys())])
 result_storDchActPower = np.array([results_dict[hour]['storDischargeInit'] for hour in sorted(results_dict.keys())])
@@ -387,13 +545,13 @@ y6 = sum([result_loadENS[:, i] for i in range(result_loadENS.shape[1])])
 
 y7 = result_pimp.squeeze()
 
-axs[0].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color='skyblue', label="Generators")
-axs[0].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color='green', label="Storage")
-axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color='maroon', label="V2G")
-axs[0].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color='yellow', label="Load Reduction")
-axs[0].fill_between(list(range(1, len(y5)+1)), y1 + y2 + y3 + y4, y1 + y2 + y3 + y4 + y5, color='orange', label="Load Cut")
-axs[0].fill_between(list(range(1, len(y6)+1)), y1 + y2 + y3 + y4 + y5, y1 + y2 + y3 + y4 + y5 + y6, color='red', label="Load ENS")
-axs[0].fill_between(list(range(1, len(y7)+1)), y1 + y2 + y3 + y4 + y5 + y6, y1 + y2 + y3 + y4 + y5 + y6 + y7, color='purple', label="Imports")
+axs[0].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Generators")
+axs[0].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Storage")
+axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="V2G")
+axs[0].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="Load Reduction")
+axs[0].fill_between(list(range(1, len(y5)+1)), y1 + y2 + y3 + y4, y1 + y2 + y3 + y4 + y5, color=project_colors_list[4], label="Load Cut")
+axs[0].fill_between(list(range(1, len(y6)+1)), y1 + y2 + y3 + y4 + y5, y1 + y2 + y3 + y4 + y5 + y6, color=project_colors_list[5], label="Load ENS")
+axs[0].fill_between(list(range(1, len(y7)+1)), y1 + y2 + y3 + y4 + y5 + y6, y1 + y2 + y3 + y4 + y5 + y6 + y7, color=project_colors_list[6], label="Imports")
 axs[0].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4 + y5 + y6 + y7))
 axs[0].set_xlabel('Time [h]')
 axs[0].set_ylabel('Power [kW]')
@@ -406,10 +564,10 @@ y2 = sum([result_genExcActPower[:, i] for i in range(result_genExcActPower.shape
 y3 = sum([result_storChActPower[:, i] for i in range(result_storChActPower.shape[1])])
 y4 = sum([result_v2gChActPower[:, i] for i in range(result_v2gChActPower.shape[1])])
 
-axs[1].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color='darkblue', label="Load")
-axs[1].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color='green', label="Gen Excess")
-axs[1].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color='maroon', label="Storage")
-axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color='yellow', label="V2G")
+axs[1].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Load")
+axs[1].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Gen Excess")
+axs[1].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="Storage")
+axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="V2G")
 axs[1].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4))
 axs[1].set_xlabel('Time [h]')
 axs[1].set_ylabel('Power [kW]')
