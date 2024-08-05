@@ -114,8 +114,8 @@ def _v2gStateEq(m, v, t):
     return default_behaviour
 
 def _v2gChDchEq(m, v, t):
-    return m.v2gCharge[v, t] + m.v2gDischarge[v, t] <= 1
-    #return m.v2gChXo[v, t] + m.v2gDchXo[v, t] [v, t] <= 1
+    #return m.v2gCharge[v, t] + m.v2gDischarge[v, t] <= 1
+    return m.v2gChXo[v, t] + m.v2gDchXo[v, t] <= 1
 
 def _v2gFollowScheduleChEq(m, v, t):
     return  (m.v2gCharge[v, t] - m.v2gScheduleChRelax[v, t]) == (m.v2gScheduleCh[v, t])
