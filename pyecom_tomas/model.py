@@ -569,7 +569,7 @@ def plot_profile(
     axs[0].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4 + y5 + y6 + y7))
     axs[0].set_xlabel('Time [h]')
     axs[0].set_ylabel('Power [MW]')
-    #axs[0].set_title('Production')
+    axs[0].set_title('Production')
     axs[0].legend()
 
     # True Consumption
@@ -585,7 +585,7 @@ def plot_profile(
     axs[1].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4))
     axs[1].set_xlabel('Time [h]')
     axs[1].set_ylabel('Power [MW]')
-    #axs[1].set_title('Consumption')
+    axs[1].set_title('Consumption')
     axs[1].legend()
 
     axs[0].set_xlim(1, model.t.last())
