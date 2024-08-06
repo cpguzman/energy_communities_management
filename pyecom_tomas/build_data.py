@@ -12,7 +12,7 @@ import mysql.connector
 from src.parsers import HMParser
 import os
 class Data:
-    def __init__(self, _file_path='data/EC_V4.xlsx'):
+    def __init__(self, _file_path='data/EC_V4_new_UC2.xlsx'):
         self.data = HMParser(file_path=_file_path, ec_id=1)
         self.data.parse()
         self.db_config = {

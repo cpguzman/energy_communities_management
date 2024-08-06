@@ -221,10 +221,10 @@ def _objFn(m):
     return temp_gens + temp_loads + temp_stor + temp_v2g + temp_rest
 
 def creat_model(data, i=1, end = 25):
-    model_forecast = pe.ConcreteModel()
-    model_forecast.t = pe.Set(initialize=np.arange(i, end),
+    my_model = pe.ConcreteModel()
+    my_model.t = pe.Set(initialize=np.arange(i, end),
                  doc='Time periods')
-    return model_forecast
+    return my_model
 
 def def_import_export(data, model, i = 1):    
     model.impMax = pe.Param(model.t,
