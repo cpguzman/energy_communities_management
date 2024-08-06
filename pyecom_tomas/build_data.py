@@ -10,7 +10,7 @@ import pyomo.environ as pe
 import json
 import mysql.connector
 from src.parsers import HMParser
-
+import os
 class Data:
     def __init__(self, _file_path='data/EC_V4.xlsx'):
         self.data = HMParser(file_path=_file_path, ec_id=1)
@@ -56,7 +56,7 @@ class Data:
             else:
                 raise ValueError(f"Unsupported array shape: {shape}")
             
-    def get_gen_data_from_db(self, specific_date, start = 0, end = 24, time_step = 60):
+    def get_gen_data_from_db(self, specific_date, start = 0, end = 24, time_step = 60, folder=None):
 
         connection = mysql.connector.connect(**self.db_config)
         cursor = connection.cursor()
@@ -69,7 +69,9 @@ class Data:
         cursor.close()
 
         generatorssss = []
+        upacs = []
         for row in rows:
+            upacs.append(row[3])
             json_data_string = row[4].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
             if row[2] != time_step:
@@ -96,8 +98,28 @@ class Data:
                 upac_gen_dict[key] = self.data.generator[key][0:number_of_generators]
 
         self.data.generator = upac_gen_dict
-    
-    def get_loads_data_from_db(self, specific_date, start = 0, end = 24, time_step = 60):
+        dict_generator = {}
+        for key_ in self.data.generator.keys():
+            my_list = self.data.generator[key_].tolist()
+            dict_generator[key_] = {}
+            for i in range(len(upacs)):
+                dict_generator[key_][upacs[i]] = my_list[i]
+
+        if folder == None:
+            folder = f"./inputs_database/jsons"
+        
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        with open(folder + f"/generator{start}-{end}.json", 'w') as json_file:
+            json.dump(dict_generator, json_file, indent=4)
+
+        print("\n\nIf you want to see the data that comes from the function get_gen_data_from_db(),\n" 
+              "please enter on the ./inputs_database/jsons/generator.json.\n" 
+              "This data is saved on the variable Data_forecast.get_data().generator\n")
+        
+
+    def get_loads_data_from_db(self, specific_date, start = 0, end = 24, time_step = 60, folder=None):
 
         connection = mysql.connector.connect(**self.db_config)
         cursor = connection.cursor()
@@ -107,7 +129,10 @@ class Data:
         cursor.execute(select_query)
         rows = cursor.fetchall()
         loadssss = []
+        upacs = []
+
         for row in rows:
+            upacs.append(row[2])
             json_data_string = row[3].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
 
@@ -134,8 +159,27 @@ class Data:
                 upac_load_dict[key] = self.data.load[key][0:number_of_laods]
         
         self.data.load = upac_load_dict
+        dict_loads = {}
+        for key_ in self.data.load.keys():
+            my_list = self.data.load[key_].tolist()
+            dict_loads[key_] = {}
+            for i in range(len(upacs)):
+                dict_loads[key_][upacs[i]] = my_list[i]
+
+        if folder == None:
+            folder = f"./inputs_database/jsons"
+
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        
+        with open(folder + f"/loads{start}-{end}.json", 'w') as json_file:
+            json.dump(dict_loads, json_file, indent=4)
+            
+        print("\n\nIf you want to see the data that comes from the function get_loads_data_from_db(),\n" 
+              "please enter on the ./inputs_database/jsons/row.json.\n" 
+              "This data is saved on the variable Data_forecast.get_data().load\n")
     
-    def get_gen_forecast_data_from_db(self, specific_date, experiment_id = 13, start = 0, end = 24, time_step = 60):
+    def get_gen_forecast_data_from_db(self, specific_date, experiment_id = 13, start = 0, end = 24, time_step = 60, folder=None):
 
         connection = mysql.connector.connect(**self.db_config)
         cursor = connection.cursor()
@@ -148,7 +192,10 @@ class Data:
         connection.close()
         
         generatorssss = []
+        upacs = []
+            
         for row in rows:
+            upacs.append(row[3])
             json_data_string = row[4].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
             if row[2] != time_step:
@@ -159,10 +206,10 @@ class Data:
                 generatorssss.append([x if x > 0 else 0 for x in resampled_df['Value'].tolist()])
             else:
                 generatorssss.append([x if x > 0 else 0 for x in list(data_dictionary.values())])
-            
+
         generators_forecast = np.array(generatorssss)
         number_of_generators = generators_forecast.shape[0]
-
+        
         upac_gen_forecast_dict = {}
         for key in self.data.generator.keys():
             if key == 'p_forecast':
@@ -177,8 +224,29 @@ class Data:
 
 
         self.data.generator = upac_gen_forecast_dict
+
+        dict_generator = {}
+        for key_ in self.data.generator.keys():
+            my_list = self.data.generator[key_].tolist()
+            dict_generator[key_] = {}
+            for i in range(len(upacs)):
+                dict_generator[key_][upacs[i]] = my_list[i]
+        
+        if folder == None:
+            folder = f"./inputs_database/jsons"
+        
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        with open(folder + f"/generator_fore{experiment_id}_{start}-{end}.json", 'w') as json_file:
+            json.dump(dict_generator, json_file, indent=4)
+
+        print("\n\nIf you want to see the data that comes from the function get_gen_forecast_data_from_db(),\n" 
+              "please enter on the ./inputs_database/jsons/generator_forecast.json.\n" 
+              "This data is saved on the variable Data_forecast.get_data().generator\n")
+          
     
-    def get_loads_forecast_data_from_db(self, specific_date, experiment_id = 19, start = 0, end = 24, time_step = 60):
+    def get_loads_forecast_data_from_db(self, specific_date, experiment_id = 19, start = 0, end = 24, time_step = 60, folder=None):
 
         connection = mysql.connector.connect(**self.db_config)
         cursor = connection.cursor()
@@ -192,7 +260,10 @@ class Data:
         connection.close()
         
         loadssss = []
+        upacs = []
+            
         for row in rows:
+            upacs.append(row[2])
             json_data_string = row[3].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
             if row[1] != time_step:
@@ -218,6 +289,24 @@ class Data:
                 upac_load_forecast_dict[key] = self.data.load[key][0:number_of_laods]
         
         self.data.load = upac_load_forecast_dict
+        dict_loads = {}
+        for key_ in self.data.load.keys():
+            my_list = self.data.load[key_].tolist()
+            dict_loads[key_] = {}
+            for i in range(len(upacs)):
+                dict_loads[key_][upacs[i]] = my_list[i]
+        
+        if folder == None:
+            folder = f"./inputs_database/jsons"
+        
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        with open(folder + f"/loads_fore{experiment_id}_{start}-{end}.json", 'w') as json_file:
+            json.dump(dict_loads, json_file, indent=4)
+            
+        print("\n\nIf you want to see the data that comes from the function get_loads_forecast_data_from_db(),\n" 
+              "please enter on the ./inputs_database/jsons/loads_forecast.json.\n" 
+              "This data is saved on the variable Data_forecast.get_data().load\n")
 
     def change_initial_state_storage(self, init_state):
         self.data.storage['initial_state'] = init_state
