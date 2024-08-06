@@ -561,7 +561,7 @@ def plot_profile(
 
     axs[0].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Generators")
     axs[0].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Storage")
-    axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="V2G")
+    axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="V2G Discharge")
     axs[0].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="Load Reduction")
     axs[0].fill_between(list(range(1, len(y5)+1)), y1 + y2 + y3 + y4, y1 + y2 + y3 + y4 + y5, color=project_colors_list[4], label="Load Cut")
     axs[0].fill_between(list(range(1, len(y6)+1)), y1 + y2 + y3 + y4 + y5, y1 + y2 + y3 + y4 + y5 + y6, color=project_colors_list[5], label="Load ENS")
@@ -581,7 +581,7 @@ def plot_profile(
     axs[1].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Load")
     axs[1].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Gen Excess")
     axs[1].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="Storage")
-    axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="V2G")
+    axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="V2G Charge")
     axs[1].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4))
     axs[1].set_xlabel('Time [h]')
     axs[1].set_ylabel('Power [MW]')
@@ -606,8 +606,6 @@ def plot_profile(
         plt.savefig(full_path, dpi=300, bbox_inches='tight')
     
     plt.show()
-
-#@TODO ADDED BY LARISSA:
 
 def export_profile_to_excel(
     result_genActPower,
@@ -645,7 +643,7 @@ def export_profile_to_excel(
         'Time [h]': list(range(1, len(y1_prod) + 1)),
         'Generators': y1_prod,
         'Storage': y2_prod,
-        'V2G': y3_prod,
+        'V2G Discharge': y3_prod,
         'Load Reduction': y4_prod,
         'Load Cut': y5_prod,
         'Load ENS': y6_prod,
@@ -658,7 +656,7 @@ def export_profile_to_excel(
         'Load': y1_cons,
         'Gen Excess': y2_cons,
         'Storage': y3_cons,
-        'V2G': y4_cons
+        'V2G Charge': y4_cons
     })
 
     full_path = os.path.join(path, name)
