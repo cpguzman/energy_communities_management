@@ -39,7 +39,7 @@ def db_get_all_columns(cur, table):
 
 import os
 
-folder = "inputs_database"
+folder = "inputs_database/all_info"
 
 if not os.path.exists(folder):
     os.makedirs(folder)
