@@ -23,7 +23,7 @@ def _impMaxEq(m, t):
 def _expMaxEq(m, t):
     return m.exports[t] <= m.expMax[t]
 
-# Upper limit for the generator, type 1 controllable, type 2 non controllable
+# Upper limit for the PV generator
 def _genActMaxEq(m, g, t):
     if m.genType[g] == 1:
         return m.genActPower[g, t] <= m.genMax[g, t]
@@ -94,7 +94,7 @@ def _v2gDchRateEq(m, v, t):
 def _v2gChRateEq(m, v, t):
     return m.v2gCharge[v, t] <= m.v2gChMax[v, t] * m.v2gChXo[v, t]
 
-# Binary limits for the EV
+# Energy in the battery limit
 def _v2gMaxEq(m, v, t):
     return m.v2gState[v, t] <= m.v2gMax[v]
 
