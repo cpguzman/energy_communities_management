@@ -67,13 +67,18 @@ class Data:
         rows = cursor.fetchall()
         cursor.close()
         cursor.close()
-
+        
         generatorssss = []
         upacs = []
         for row in rows:
             upacs.append(row[3])
             json_data_string = row[4].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
+
+            # Since all data from mysql databases come in W, and in Excel is in kW, we divide by 1000
+            for key in data_dictionary:
+                data_dictionary[key] = data_dictionary[key] / 1000 # It becomes in kW.
+
             if row[2] != time_step:
                 df = pd.DataFrame(list(data_dictionary.items()), columns=['Time', 'Value'])
                 df['Time'] = pd.to_datetime(df['Time'], format='%H:%M')
@@ -113,6 +118,19 @@ class Data:
 
         with open(folder + f"/generator{start}-{end}.json", 'w') as json_file:
             json.dump(dict_generator, json_file, indent=4)
+        
+        # Create a dictionary to store the DataFrames
+        dfs_ = {key: pd.DataFrame(value).T for key, value in self.data.generator.items()}
+
+        # Rename columns to Place1, Place2, ..., Place5
+        for df in dfs_.values():
+            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+
+        # Write the DataFrames to an Excel file, each in a different sheet
+        with pd.ExcelWriter(folder + f"/generator_data{start}-{end}.xlsx") as writer:
+            for key, df in dfs_.items():
+                df.to_excel(writer, sheet_name=key, index=False)
+
 
     def get_loads_data_from_db(self, specific_date, start = 0, end = 24, time_step = 60, folder=None):
 
@@ -130,6 +148,10 @@ class Data:
             upacs.append(row[2])
             json_data_string = row[3].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
+
+            # Since all data from mysql databases come in W, and in Excel is in kW, we divide by 1000
+            for key in data_dictionary:
+                data_dictionary[key] = data_dictionary[key] / 1000 # It becomes in kW.
 
             if row[1] != time_step:
                 df = pd.DataFrame(list(data_dictionary.items()), columns=['Time', 'Value'])
@@ -169,6 +191,19 @@ class Data:
         
         with open(folder + f"/loads{start}-{end}.json", 'w') as json_file:
             json.dump(dict_loads, json_file, indent=4)
+        
+        # Create a dictionary to store the DataFrames
+        dfs_ = {key: pd.DataFrame(value).T for key, value in self.data.load.items()}
+
+        # Rename columns to Place1, Place2, ..., Place5
+        for df in dfs_.values():
+            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+
+        # Write the DataFrames to an Excel file, each in a different sheet
+        with pd.ExcelWriter(folder + f"/loads_data{start}-{end}.xlsx") as writer:
+            for key, df in dfs_.items():
+                df.to_excel(writer, sheet_name=key, index=False)
+
 
     
     def get_gen_forecast_data_from_db(self, specific_date, experiment_id = 13, start = 0, end = 24, time_step = 60, folder=None):
@@ -182,7 +217,6 @@ class Data:
         rows = cursor.fetchall()
         cursor.close()
         connection.close()
-        
         generatorssss = []
         upacs = []
             
@@ -190,6 +224,11 @@ class Data:
             upacs.append(row[3])
             json_data_string = row[4].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
+
+            # Since all data from mysql databases come in W, and in Excel is in kW, we divide by 1000
+            for key in data_dictionary:
+                data_dictionary[key] = data_dictionary[key] / 1000 # It becomes in kW.
+
             if row[2] != time_step:
                 df = pd.DataFrame(list(data_dictionary.items()), columns=['Time', 'Value'])
                 df['Time'] = pd.to_datetime(df['Time'], format='%H:%M')
@@ -232,6 +271,19 @@ class Data:
 
         with open(folder + f"/generator_fore{experiment_id}_{start}-{end}.json", 'w') as json_file:
             json.dump(dict_generator, json_file, indent=4)
+        
+        # Create a dictionary to store the DataFrames
+        dfs_ = {key: pd.DataFrame(value).T for key, value in self.data.generator.items()}
+
+        # Rename columns to Place1, Place2, ..., Place5
+        for df in dfs_.values():
+            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+
+        # Write the DataFrames to an Excel file, each in a different sheet
+        with pd.ExcelWriter(folder + f"/generator_forecast_data{start}-{end}.xlsx") as writer:
+            for key, df in dfs_.items():
+                df.to_excel(writer, sheet_name=key, index=False)
+
     
     def get_loads_forecast_data_from_db(self, specific_date, experiment_id = 19, start = 0, end = 24, time_step = 60, folder=None):
 
@@ -253,6 +305,11 @@ class Data:
             upacs.append(row[2])
             json_data_string = row[3].decode('utf-8')
             data_dictionary = json.loads(json_data_string)
+
+            # Since all data from mysql databases come in W, and in Excel is in kW, we divide by 1000
+            for key in data_dictionary:
+                data_dictionary[key] = data_dictionary[key] / 1000 # It becomes in kW.
+
             if row[1] != time_step:
                 df = pd.DataFrame(list(data_dictionary.items()), columns=['Time', 'Value'])
                 df['Time'] = pd.to_datetime(df['Time'], format='%H:%M')
@@ -290,6 +347,19 @@ class Data:
             os.makedirs(folder)
         with open(folder + f"/loads_fore{experiment_id}_{start}-{end}.json", 'w') as json_file:
             json.dump(dict_loads, json_file, indent=4)
+        
+        # Create a dictionary to store the DataFrames
+        dfs_ = {key: pd.DataFrame(value).T for key, value in self.data.load.items()}
+
+        # Rename columns to Place1, Place2, ..., Place5
+        for df in dfs_.values():
+            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+
+        # Write the DataFrames to an Excel file, each in a different sheet
+        with pd.ExcelWriter(folder + f"/loads_forecast_data{start}-{end}.xlsx") as writer:
+            for key, df in dfs_.items():
+                df.to_excel(writer, sheet_name=key, index=False)
+
             
 
     def change_initial_state_storage(self, init_state):
