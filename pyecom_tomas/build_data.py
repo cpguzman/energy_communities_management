@@ -12,7 +12,7 @@ import mysql.connector
 from src.parsers import HMParser
 import os
 class Data:
-    def __init__(self, _file_path='data/EC_V4.xlsx'):
+    def __init__(self, _file_path='data/EC_V4_new_UC2.xlsx'):
         self.data = HMParser(file_path=_file_path, ec_id=1)
         self.data.parse()
         self.db_config = {
@@ -114,11 +114,6 @@ class Data:
         with open(folder + f"/generator{start}-{end}.json", 'w') as json_file:
             json.dump(dict_generator, json_file, indent=4)
 
-        print("\n\nIf you want to see the data that comes from the function get_gen_data_from_db(),\n" 
-              "please enter on the ./inputs_database/jsons/generator.json.\n" 
-              "This data is saved on the variable Data_forecast.get_data().generator\n")
-        
-
     def get_loads_data_from_db(self, specific_date, start = 0, end = 24, time_step = 60, folder=None):
 
         connection = mysql.connector.connect(**self.db_config)
@@ -174,10 +169,7 @@ class Data:
         
         with open(folder + f"/loads{start}-{end}.json", 'w') as json_file:
             json.dump(dict_loads, json_file, indent=4)
-            
-        print("\n\nIf you want to see the data that comes from the function get_loads_data_from_db(),\n" 
-              "please enter on the ./inputs_database/jsons/row.json.\n" 
-              "This data is saved on the variable Data_forecast.get_data().load\n")
+
     
     def get_gen_forecast_data_from_db(self, specific_date, experiment_id = 13, start = 0, end = 24, time_step = 60, folder=None):
 
@@ -240,11 +232,6 @@ class Data:
 
         with open(folder + f"/generator_fore{experiment_id}_{start}-{end}.json", 'w') as json_file:
             json.dump(dict_generator, json_file, indent=4)
-
-        print("\n\nIf you want to see the data that comes from the function get_gen_forecast_data_from_db(),\n" 
-              "please enter on the ./inputs_database/jsons/generator_forecast.json.\n" 
-              "This data is saved on the variable Data_forecast.get_data().generator\n")
-          
     
     def get_loads_forecast_data_from_db(self, specific_date, experiment_id = 19, start = 0, end = 24, time_step = 60, folder=None):
 
@@ -304,9 +291,6 @@ class Data:
         with open(folder + f"/loads_fore{experiment_id}_{start}-{end}.json", 'w') as json_file:
             json.dump(dict_loads, json_file, indent=4)
             
-        print("\n\nIf you want to see the data that comes from the function get_loads_forecast_data_from_db(),\n" 
-              "please enter on the ./inputs_database/jsons/loads_forecast.json.\n" 
-              "This data is saved on the variable Data_forecast.get_data().load\n")
 
     def change_initial_state_storage(self, init_state):
         self.data.storage['initial_state'] = init_state
