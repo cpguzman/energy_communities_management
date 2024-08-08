@@ -173,7 +173,7 @@ class Data:
             # Rename columns
             for df in dfs_.values():
                 #df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
-                df.columns = [f'House {i + 1}' for i in range(df.shape[1])]
+                df.columns = [f'House {i}' for i in range(df.shape[1])]
 
             # Write the DataFrames to an Excel file, each in a different sheet
             with pd.ExcelWriter(folder + f"/{archive_name}_data{start}-{end}.xlsx") as writer:
