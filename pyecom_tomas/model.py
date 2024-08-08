@@ -194,8 +194,8 @@ def _balanceEq(m, t):
     #temp_cs = sum(m.csNetCharge[:, t])
     temp_cs = sum([m.csCharge[c, t] for c in np.arange(1, m.cs.last() + 1)])
     
-    return temp_gens - temp_loads - temp_stor - temp_v2g - temp_cs + m.imports[t] - m.exports[t] == 0
-    #return temp_gens - temp_loads - temp_stor - temp_cs + m.imports[t] - m.exports[t] == 0
+    #return temp_gens - temp_loads - temp_stor - temp_v2g - temp_cs + m.imports[t] - m.exports[t] == 0
+    return temp_gens - temp_loads - temp_stor - temp_cs + m.imports[t] - m.exports[t] == 0
 
 def _objFn(m):
 
