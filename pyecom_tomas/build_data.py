@@ -11,6 +11,7 @@ import json
 import mysql.connector
 from src.parsers import HMParser
 import os
+
 class Data:
     def __init__(self, _file_path='data/EC_V4_new_UC2.xlsx'):
         self.data = HMParser(file_path=_file_path, ec_id=1)
@@ -122,9 +123,10 @@ class Data:
         # Create a dictionary to store the DataFrames
         dfs_ = {key: pd.DataFrame(value).T for key, value in self.data.generator.items()}
 
-        # Rename columns to Place1, Place2, ..., Place5
+        # Rename columns
         for df in dfs_.values():
-            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            #df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            df.columns = [f'House {i + 1}' for i in range(df.shape[1])]
 
         # Write the DataFrames to an Excel file, each in a different sheet
         with pd.ExcelWriter(folder + f"/generator_data{start}-{end}.xlsx") as writer:
@@ -197,7 +199,8 @@ class Data:
 
         # Rename columns to Place1, Place2, ..., Place5
         for df in dfs_.values():
-            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            #df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            df.columns = [f'House {i + 1}' for i in range(df.shape[1])]
 
         # Write the DataFrames to an Excel file, each in a different sheet
         with pd.ExcelWriter(folder + f"/loads_data{start}-{end}.xlsx") as writer:
@@ -277,7 +280,8 @@ class Data:
 
         # Rename columns to Place1, Place2, ..., Place5
         for df in dfs_.values():
-            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            #df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            df.columns = [f'House {i + 1}' for i in range(df.shape[1])]
 
         # Write the DataFrames to an Excel file, each in a different sheet
         with pd.ExcelWriter(folder + f"/generator_forecast_data{start}-{end}.xlsx") as writer:
@@ -353,7 +357,8 @@ class Data:
 
         # Rename columns to Place1, Place2, ..., Place5
         for df in dfs_.values():
-            df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            #df.columns = [f'Upac {upacs[i]}' for i in range(df.shape[1])]
+            df.columns = [f'House {i + 1}' for i in range(df.shape[1])]
 
         # Write the DataFrames to an Excel file, each in a different sheet
         with pd.ExcelWriter(folder + f"/loads_forecast_data{start}-{end}.xlsx") as writer:

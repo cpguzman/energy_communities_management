@@ -2,6 +2,7 @@ import numpy as np
 import pyomo.environ as pe
 from build_data import convert_to_dictionary
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import os
 import pandas as pd
 
@@ -188,7 +189,8 @@ def _balanceEq(m, t):
     #temp_cs = sum(m.csNetCharge[:, t])
     temp_cs = sum([m.csCharge[c, t] for c in np.arange(1, m.cs.last() + 1)])
     
-    return temp_gens - temp_loads - temp_stor - temp_v2g - temp_cs + m.imports[t] - m.exports[t] == 0
+    #return temp_gens - temp_loads - temp_stor - temp_v2g - temp_cs + m.imports[t] - m.exports[t] == 0
+    return temp_gens - temp_loads - temp_stor - temp_cs + m.imports[t] - m.exports[t] == 0
 
 def _objFn(m):
 
@@ -546,46 +548,63 @@ def plot_profile(
     save = False,
     path = None,
     name = None,
+    graph_max = None,
+    graph_step = None
 ):
     fig, axs = plt.subplots(1, 2, figsize=(15, 5))
 
-    # True Production
-    y1 = sum([result_genActPower.values[i].astype(float) for i in range(model.gen.last())]) / 1000
-    y2 = sum([result_storDchActPower.values[i] for i in range(model.stor.last())]) / 1000
-    y3 = sum([result_v2gDchActPower.values[i] for i in range(model.v2g.last())]) / 1000
-    y4 = sum([result_loadRedActPower.values[i] for i in range(model.loads.last())]) / 1000
-    y5 = sum([result_loadCutActPower.values[i] for i in range(model.loads.last())]) / 1000
-    y6 = sum([result_loadENS.values[i] for i in range(model.loads.last())]) / 1000
+    # Production
+    y1_prod = sum([result_genActPower.values[i].astype(float) for i in range(model.gen.last())]) 
+    y2_prod = sum([result_storDchActPower.values[i] for i in range(model.stor.last())]) 
+    y3_prod = sum([result_v2gDchActPower.values[i] for i in range(model.v2g.last())]) 
+    y4_prod = sum([result_loadRedActPower.values[i] for i in range(model.loads.last())]) 
+    y5_prod = sum([result_loadCutActPower.values[i] for i in range(model.loads.last())]) 
+    y6_prod = sum([result_loadENS.values[i] for i in range(model.loads.last())]) 
     
-    y7 = result_pimp.values.reshape(model.t.last()-model.t.first()+1) / 1000
+    y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1) 
 
-    axs[0].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Generators")
-    axs[0].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Storage")
-    axs[0].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="V2G Discharge")
-    axs[0].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="Load Reduction")
-    axs[0].fill_between(list(range(1, len(y5)+1)), y1 + y2 + y3 + y4, y1 + y2 + y3 + y4 + y5, color=project_colors_list[4], label="Load Cut")
-    axs[0].fill_between(list(range(1, len(y6)+1)), y1 + y2 + y3 + y4 + y5, y1 + y2 + y3 + y4 + y5 + y6, color=project_colors_list[5], label="Load ENS")
-    axs[0].fill_between(list(range(1, len(y7)+1)), y1 + y2 + y3 + y4 + y5 + y6, y1 + y2 + y3 + y4 + y5 + y6 + y7, color=project_colors_list[6], label="Imports")
-    axs[0].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4 + y5 + y6 + y7))
-    axs[0].set_xlabel('Time [h]')
-    axs[0].set_ylabel('Power [MW]')
-    axs[0].set_title('Production')
+
+    # Consumption
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) 
+    y2_cons = sum([result_genExcActPower.values[i] for i in range(model.gen.last())])
+    y3_cons = sum([result_storChActPower.values[i] for i in range(model.stor.last())]) 
+    y4_cons = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())]) 
+
+    # Plot Production
+    axs[0].fill_between(list(range(1, len(y1_prod)+1)), np.zeros(len(y1_prod)), y1_prod, color=project_colors_list[0], label="Generator Power Production")
+    axs[0].fill_between(list(range(1, len(y2_prod)+1)), y1_prod, y1_prod + y2_prod, color=project_colors_list[1], label="BESS Discharging Power")
+    axs[0].fill_between(list(range(1, len(y3_prod)+1)), y1_prod + y2_prod, y1_prod + y2_prod + y3_prod, color=project_colors_list[2], label="EV Discharging Power")
+    axs[0].fill_between(list(range(1, len(y4_prod)+1)), y1_prod + y2_prod + y3_prod, y1_prod + y2_prod + y3_prod + y4_prod, color=project_colors_list[3], label="Load Reduction")
+    axs[0].fill_between(list(range(1, len(y5_prod)+1)), y1_prod + y2_prod + y3_prod + y4_prod, y1_prod + y2_prod + y3_prod + y4_prod + y5_prod, color=project_colors_list[4], label="Load Cut")
+    axs[0].fill_between(list(range(1, len(y6_prod)+1)), y1_prod + y2_prod + y3_prod + y4_prod + y5_prod, y1_prod + y2_prod + y3_prod + y4_prod + y5_prod + y6_prod, color=project_colors_list[5], label="Load ENS")
+    axs[0].fill_between(list(range(1, len(y7_prod)+1)), y1_prod + y2_prod + y3_prod + y4_prod + y5_prod + y6_prod, y1_prod + y2_prod + y3_prod + y4_prod + y5_prod + y6_prod + y7_prod, color=project_colors_list[6], label="Grid Import Power")
+    axs[0].set_ylim(0, max(1.1*np.max(y1_prod + y2_prod + y3_prod + y4_prod + y5_prod + y6_prod + y7_prod), 1.1*np.max(y1_cons + y2_cons + y3_cons + y4_cons)))
+    
+    if graph_max and graph_step:
+        axs[0].set_ylim(0, graph_max)
+        axs[0].yaxis.set_major_locator(ticker.MultipleLocator(graph_step))
+    
+    axs[0].set_xlabel('Hour')
+    axs[0].set_ylabel('Power [kW]')
+    #axs[0].set_title('Production')
     axs[0].legend()
 
-    # True Consumption
-    y1 = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) / 1000
-    y2 = sum([result_genExcActPower.values[i] for i in range(model.gen.last())]) / 1000
-    y3 = sum([result_storChActPower.values[i] for i in range(model.stor.last())]) / 1000
-    y4 = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())]) / 1000
+    # Plot Consumption
+    axs[1].fill_between(list(range(1, len(y1_cons)+1)), np.zeros(len(y1_cons)), y1_cons, color=project_colors_list[0], label="Load Power Consumption")
+    axs[1].fill_between(list(range(1, len(y2_cons)+1)), y1_cons, y1_cons + y2_cons, color=project_colors_list[1], label="Grid Export Power")
+    axs[1].fill_between(list(range(1, len(y3_cons)+1)), y1_cons + y2_cons, y1_cons + y2_cons + y3_cons, color=project_colors_list[2], label="BESS Charging Power")
+    axs[1].fill_between(list(range(1, len(y4_cons)+1)), y1_cons + y2_cons + y3_cons, y1_cons + y2_cons + y3_cons + y4_cons, color=project_colors_list[3], label="EV Charging Power")
+    
+    
+    axs[1].set_ylim(0, max(1.1*np.max(y1_prod + y2_prod + y3_prod + y4_prod + y5_prod + y6_prod + y7_prod), 1.1*np.max(y1_cons + y2_cons + y3_cons + y4_cons)))
+    if graph_max and graph_step:
+        axs[1].set_ylim(0, graph_max)
+        axs[1].yaxis.set_major_locator(ticker.MultipleLocator(graph_step))
 
-    axs[1].fill_between(list(range(1, len(y1)+1)), np.zeros(len(y1)), y1, color=project_colors_list[0], label="Load")
-    axs[1].fill_between(list(range(1, len(y2)+1)), y1, y1 + y2, color=project_colors_list[1], label="Gen Excess")
-    axs[1].fill_between(list(range(1, len(y3)+1)), y1 + y2, y1 + y2 + y3, color=project_colors_list[2], label="Storage")
-    axs[1].fill_between(list(range(1, len(y4)+1)), y1 + y2 + y3, y1 + y2 + y3 + y4, color=project_colors_list[3], label="V2G Charge")
-    axs[1].set_ylim(0, 1.1*np.max(y1 + y2 + y3 + y4))
-    axs[1].set_xlabel('Time [h]')
-    axs[1].set_ylabel('Power [MW]')
-    axs[1].set_title('Consumption')
+        
+    axs[1].set_xlabel('Hour')
+    axs[1].set_ylabel('Power [kW]')
+    #axs[1].set_title('Consumption')
     axs[1].legend()
 
     axs[0].set_xlim(1, model.t.last())
@@ -624,19 +643,19 @@ def export_profile_to_excel(
     name
 ):
     # True Production
-    y1_prod = sum([result_genActPower.values[i].astype(float) for i in range(model.gen.last())]) / 1000
-    y2_prod = sum([result_storDchActPower.values[i] for i in range(model.stor.last())]) / 1000
-    y3_prod = sum([result_v2gDchActPower.values[i] for i in range(model.v2g.last())]) / 1000
-    y4_prod = sum([result_loadRedActPower.values[i] for i in range(model.loads.last())]) / 1000
-    y5_prod = sum([result_loadCutActPower.values[i] for i in range(model.loads.last())]) / 1000
-    y6_prod = sum([result_loadENS.values[i] for i in range(model.loads.last())]) / 1000
-    y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1) / 1000
+    y1_prod = sum([result_genActPower.values[i].astype(float) for i in range(model.gen.last())]) 
+    y2_prod = sum([result_storDchActPower.values[i] for i in range(model.stor.last())])
+    y3_prod = sum([result_v2gDchActPower.values[i] for i in range(model.v2g.last())]) 
+    y4_prod = sum([result_loadRedActPower.values[i] for i in range(model.loads.last())]) 
+    y5_prod = sum([result_loadCutActPower.values[i] for i in range(model.loads.last())]) 
+    y6_prod = sum([result_loadENS.values[i] for i in range(model.loads.last())])
+    y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1) 
     
     # True Consumption
-    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) / 1000
-    y2_cons = sum([result_genExcActPower.values[i] for i in range(model.gen.last())]) / 1000
-    y3_cons = sum([result_storChActPower.values[i] for i in range(model.stor.last())]) / 1000
-    y4_cons = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())]) / 1000
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) 
+    y2_cons = sum([result_genExcActPower.values[i] for i in range(model.gen.last())])
+    y3_cons = sum([result_storChActPower.values[i] for i in range(model.stor.last())]) 
+    y4_cons = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())]) 
     
     # Creating Production Dataframe
     df_production = pd.DataFrame({
