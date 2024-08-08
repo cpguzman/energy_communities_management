@@ -24,7 +24,7 @@ def _impMaxEq(m, t):
 def _expMaxEq(m, t):
     return m.exports[t] <= m.expMax[t]
 
-# Upper limit for the PV generator
+# Upper limit for the PV generator, both types are PV generators, but, type 2 can be curtailed 
 def _genActMaxEq(m, g, t):
     if m.genType[g] == 1:
         return m.genActPower[g, t] <= m.genMax[g, t]
@@ -32,21 +32,21 @@ def _genActMaxEq(m, g, t):
         return m.genActPower[g, t] + m.genExcPower[g, t] == m.genMax[g, t]
     return default_behaviour
 
-# Lower limit for the generator, type 1 controllable
+# Lower limit for the PV generator, type 1 controllable
 def _genActMinEq(m, g, t):
     if m.genType[g] == 1:
         return m.genActPower[g, t] >= m.genMin[g] * m.genXo[g, t]
     return default_behaviour
 
-# Limit for controllable load
+# Limit for controllable load that can be reduced
 def _loadRedActEq(m, l, t):
     return m.loadRedActPower[l, t] <= m.loadRedMax[l, t]
 
-# Limits for on-off load    
+# Limits for load that can be curtailed    
 def _loadCutActEq(m, l, t):
     return m.loadCutActPower[l, t] == m.loadCutMax[l, t] * m.loadXo[l, t]
 
-# Limits for load ENS (a extra load served for the rest of available load)
+# Limits for load energy not supplied (this a load that the system can not attend)
 def _loadENSEq(m, l, t):
     return m.loadENS[l, t] + m.loadRedActPower[l, t] + m.loadCutActPower[l, t] <= m.loadMax[l, t]
 
@@ -54,7 +54,7 @@ def _loadENSEq(m, l, t):
 def _storDchRateEq(m, s, t):
     return m.storDischarge[s, t] <= m.storDchMax[s, t] * m.storDchXo[s, t]
 
-# Battery charge limit
+# Battery power charge limit
 def _storChRateEq(m, s, t):
     return m.storCharge[s, t] <= m.storChMax[s, t] * m.storChXo[s, t]
 
@@ -62,7 +62,7 @@ def _storChRateEq(m, s, t):
 def _storMaxEq(m, s, t):
     return m.storState[s, t] <= m.storMax[s]
 
-# Battery energy limit considering the relaxa variable  
+# Battery energy limit considering the relax variable  
 def _storRelaxEq(m, s, t):
     return m.storState[s, t] >= m.storMax[s] * m.storMin[s]  - m.storRelax[s, t]
 
@@ -78,11 +78,12 @@ def _storBalanceEq(m, s, t):
 def _storChDchEq(m, s, t):
     return m.storChXo[s, t] + m.storDchXo[s, t] <= 1
 
-# Battery charging power schedulled considering a relaxa variable
+# Battery charging power schedulled considering the relax variable, the first component is the storage power, the second is the relax variable
+# the third is a param (confirm where it comes from)
 def _StorFollowScheduleChEq(m, s, t):
     return  (m.storCharge[s, t] - m.storScheduleChRelax[s, t]) == (m.storScheduleCh[s, t])
 
-# Battery discharging power schedulled considering a relaxa variable
+# Battery discharging power schedulled considering the relax variable
 def _StorFollowScheduleDchEq(m, s, t):
     #Aqui ele pode tanto descarregar mais ou menos que o previsto nao?
     return  (m.storDischarge[s, t] - m.storScheduleDchRelax[s, t]) == (m.storScheduleDch[s, t])
@@ -113,9 +114,12 @@ def _v2gRelaxEq_Old(m, v, t):
 
 # To validate the SOC requiered when the EV connects to the CS
 def _v2gRelaxEq(m, v, t):
+# First it is validated if the EV is connected to the CS with this if
     if m.v2gSchedule[v, t] == 1: #Quando chega ao ponto de carregamento tem que estar com maior SOC que o minimo
+    #Then, it is validated the SOC required in energy, in case of this SOC being 0, the energy in the EV battery must be atleast the minimum 
         if m.v2gScheduleDepartureSOC[v, t] == 0:
             return m.v2gState[v, t] >= m.v2gMin[v] - m.v2gRelax[v, t]
+        # In case of the SOC required will be differente from 0, the energy in the battery must be more than this soc 
         else:
             return m.v2gState[v, t] >= m.v2gScheduleDepartureSOC[v, t] - m.v2gRelax[v, t]
     else:
@@ -124,7 +128,7 @@ def _v2gRelaxEq(m, v, t):
 
 # Energy balance in the EV battery    
 def _v2gStateEq(m, v, t):
-    if m.v2gSchedule[v, t] == 0: # If vehicle is not scheduled
+    if m.v2gSchedule[v, t] == 0: # If vehicle is not scheduled (not connected to the CS)
         return m.v2gState[v, t] == 0
     elif (m.v2gSchedule[v, t] == 1) & (t == m.t.first()): # If vehicle is scheduled and it is the first time step
         return m.v2gState[v, t] == m.v2gScheduleArrivalSOC[v, t] + m.v2gCharge[v, t] * m.v2gChEff[v] * 24/m.t.last() - m.v2gDischarge[v, t] * 24/m.t.last() / m.v2gDchEff[v]
@@ -136,12 +140,13 @@ def _v2gStateEq(m, v, t):
     return default_behaviour
 
 
-# Binary limit for the EV battery
+# Binary limit for the EV battery charging and discharging process
 def _v2gChDchEq(m, v, t):
     #return m.v2gCharge[v, t] + m.v2gDischarge[v, t] <= 1
     return m.v2gChXo[v, t] + m.v2gDchXo[v, t] <= 1
 
-# EV charge power limit considering relax variable
+# EV charge power limit considering relax variable, the first component is the charging power, the second is the relax variable
+# the third is a param (confirm where it comes from)
 def _v2gFollowScheduleChEq(m, v, t):
     return  (m.v2gCharge[v, t] - m.v2gScheduleChRelax[v, t]) == (m.v2gScheduleCh[v, t])
 
