@@ -613,6 +613,9 @@ def plot_profile(
     axs[0].set_xticks(ticks)
     axs[1].set_xticks(ticks)
 
+    axs[0].grid(True, which='both', linestyle='--', linewidth=0.5, color='gray')
+    axs[1].grid(True, which='both', linestyle='--', linewidth=0.5, color='gray')
+
     plt.tight_layout()
     
     if save:
