@@ -299,7 +299,8 @@ def def_loads(data, model, i = 1):
     model.loads = pe.Set(initialize=np.arange(1, data.load['p_forecast'].shape[0] + 1),
                         doc='Number of loads')
     model.loadMax = pe.Param(model.loads, model.t,
-                            initialize=convert_to_dictionary(data.load['p_forecast'][:, i-1:model.t.last()] * 5, t_start=i-1),
+                            #initialize=convert_to_dictionary(data.load['p_forecast'][:, i-1:model.t.last()] * 5, t_start=i-1),
+                            initialize=convert_to_dictionary(data.load['p_forecast'][:, i-1:model.t.last()], t_start=i-1),
                             doc='Forecasted power consumption')
     model.loadRedMax = pe.Param(model.loads, model.t,
                                 initialize=convert_to_dictionary(data.load['p_forecast'][:, i-1:model.t.last()] * 0.5, t_start=i-1 ),
@@ -569,7 +570,8 @@ def plot_profile(
     y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1) 
  
     # Consumption
-    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) 
+    #y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) 
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()], axis=0, dtype=np.float64) 
     y2_cons = sum([result_genExcActPower.values[i] for i in range(model.gen.last())])
     y3_cons = sum([result_storChActPower.values[i] for i in range(model.stor.last())]) 
     y4_cons = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())]) 
@@ -591,7 +593,7 @@ def plot_profile(
     axs[0].set_xlabel('Hour')
     axs[0].set_ylabel('Power [kW]')
     #axs[0].set_title('Production')
-    axs[0].legend()
+    axs[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=3)
 
     # Plot Consumption
     axs[1].fill_between(list(range(1, len(y1_cons)+1)), np.zeros(len(y1_cons)), y1_cons, color=project_colors_list[0], label="Load Power Consumption")
@@ -609,7 +611,7 @@ def plot_profile(
     axs[1].set_xlabel('Hour')
     axs[1].set_ylabel('Power [kW]')
     #axs[1].set_title('Consumption')
-    axs[1].legend()
+    axs[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2)
 
     axs[0].set_xlim(1, model.t.last())
     axs[1].set_xlim(1, model.t.last())
@@ -659,7 +661,8 @@ def export_profile_to_excel(
     y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1) 
     
     # True Consumption
-    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) 
+    #y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()]*5, axis=0, dtype=np.float64) 
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, model.t.first()-1:model.t.last()], axis=0, dtype=np.float64) 
     y2_cons = sum([result_genExcActPower.values[i] for i in range(model.gen.last())])
     y3_cons = sum([result_storChActPower.values[i] for i in range(model.stor.last())]) 
     y4_cons = sum([result_v2gChActPower.values[i] for i in range(model.v2g.last())]) 
@@ -725,7 +728,8 @@ def plot_mixed_results(result_genActPower,
     y7_prod = result_pimp.squeeze() 
 
     # Consumption
-    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, 0:24*60//_time_step]*5, axis=0, dtype=np.float64)
+    #y1_cons = np.sum(Data.get_data().load['p_forecast'][:, 0:24*60//_time_step]*5, axis=0, dtype=np.float64)
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, 0:24*60//_time_step], axis=0, dtype=np.float64)
     y2_cons = sum([result_genExcActPower[:, i] for i in range(result_genExcActPower.shape[1])])
     y3_cons = sum([result_storChActPower[:, i] for i in range(result_storChActPower.shape[1])])
     y4_cons = sum([result_v2gChActPower[:, i] for i in range(result_v2gChActPower.shape[1])]) 
@@ -750,7 +754,8 @@ def plot_mixed_results(result_genActPower,
     axs[0].set_xlabel('Hour')
     axs[0].set_ylabel('Power [kW]')
     #axs[0].set_title('Production')
-    axs[0].legend()
+    axs[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=3)
+    #plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2)
 
     # Plot consumption
     axs[1].fill_between(list(range(1, len(y1_cons)+1)), np.zeros(len(y1_cons)), y1_cons, color=project_colors_list[0], label="Load Power Consumption")
@@ -770,7 +775,7 @@ def plot_mixed_results(result_genActPower,
     axs[1].set_xlabel('Hour')
     axs[1].set_ylabel('Power [kW]')
     #axs[1].set_title('Consumption')
-    axs[1].legend()
+    axs[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2)
 
     axs[0].set_xlim(1, 24*60//_time_step)
     axs[1].set_xlim(1, 24*60//_time_step)
@@ -819,7 +824,8 @@ def export_mixed_results(result_genActPower,
     y7_prod = result_pimp.squeeze() 
 
     # Consumption
-    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, 0:24*60//_time_step]*5, axis=0, dtype=np.float64)
+    #y1_cons = np.sum(Data.get_data().load['p_forecast'][:, 0:24*60//_time_step]*5, axis=0, dtype=np.float64)
+    y1_cons = np.sum(Data.get_data().load['p_forecast'][:, 0:24*60//_time_step], axis=0, dtype=np.float64)
     y2_cons = sum([result_genExcActPower[:, i] for i in range(result_genExcActPower.shape[1])])
     y3_cons = sum([result_storChActPower[:, i] for i in range(result_storChActPower.shape[1])])
     y4_cons = sum([result_v2gChActPower[:, i] for i in range(result_v2gChActPower.shape[1])]) 

@@ -138,9 +138,7 @@ class Data:
             self.save_data_from_db(table, upac_dict, start, end, folder)
 
     def multiply_factor_on_dbs(self, input_data, variable, factor, house_id=None):
-        #print(input_data[variable][house_id])
         if house_id is not None:
-        #    print("Opa, entrei nesse caso")
             input_data[variable][house_id] = input_data[variable][house_id] * factor
         else:
             for i in range(len(input_data[variable])):
