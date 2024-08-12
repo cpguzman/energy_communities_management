@@ -139,7 +139,7 @@ class BaseScene:
         y5_prod = [sum(lista[j] for lista in loadCutActPower) for j in range(len(loadCutActPower[0]))]
         y6_prod = [sum(lista[j] for lista in loadENS) for j in range(len(loadENS[0]))]
         #y7_prod = result_pimp.values.reshape(model.t.last()-model.t.first()+1) 
-        print("Opaaaa", len(loadMax))
+
         y1_cons = [sum(lista[j] for lista in loadMax) for j in range(len(loadMax[0]))]
         y2_cons = [sum(lista[j] for lista in genExcActPower) for j in range(len(genExcActPower[0]))]
         y3_cons = [sum(lista[j] for lista in storChActPower) for j in range(len(storChActPower[0]))]
