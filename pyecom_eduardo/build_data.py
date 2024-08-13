@@ -13,7 +13,7 @@ from src.parsers import HMParser
 import os
 
 class Data:
-    def __init__(self, _file_path='data/EC_V4_new_UC2.xlsx', ec_id=1):
+    def __init__(self, _file_path='data/EC_V4_new_UC1.xlsx', ec_id=1):
         self.data = HMParser(file_path=_file_path, ec_id=ec_id)
         self.data.parse()
         self.db_config = {

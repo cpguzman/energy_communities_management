@@ -8,15 +8,15 @@ cplex_path = conf["PATH_TO_SOLVER"]
 model = pyo.ConcreteModel("Energy Community")
 
 #Data
-General_Information_Data_excel =  pd.ExcelFile("./Dados/General_Information Data.xlsx")
+General_Information_Data_excel =  pd.ExcelFile("./data/old/General_Information Data.xlsx")
 df_P_Max_Imp = General_Information_Data_excel.parse("1 P Max_Imp (kW)",index_col=0)
 dict_P_Max_Imp = df_P_Max_Imp.to_dict()
 df_P_Max_Exp = General_Information_Data_excel.parse("2 P Max_Exp (kW)",index_col=0)
 dict_P_Max_Exp = df_P_Max_Exp.to_dict()
-Load_Data_excel =  pd.ExcelFile("./Dados/Load_Data.xlsx")
+Load_Data_excel =  pd.ExcelFile("./data/old/Load_Data.xlsx")
 df_Pload_Forecast = Load_Data_excel.parse("1 P Forecast (kW)",index_col=0)
 Pload_Forecast_dict = df_Pload_Forecast.to_dict()
-Generators_Data_excel =  pd.ExcelFile("./Dados/Generators_Data.xlsx")
+Generators_Data_excel =  pd.ExcelFile("./data/old/Generators_Data.xlsx")
 df_GenCharacteritics = Generators_Data_excel.parse("9 Characteritics D.",index_col=0)
 GenCharacteritics_dict = df_GenCharacteritics.to_dict()
 df_Pgen_Forecast = Generators_Data_excel.parse("1 P Forecast (kW)",index_col=0)
