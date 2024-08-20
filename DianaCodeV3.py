@@ -35,6 +35,19 @@ df_PstorageDischargeLimit = Storage_Data_excel.parse("2 P Discharge Limit (kW)",
 PstorageDischargeLimit_dict = df_PstorageDischargeLimit.to_dict()
 df_StorageCharacteritics = Storage_Data_excel.parse("5 Characteritics D.",index_col=0)
 StorageCharacteritics_dict = df_StorageCharacteritics.to_dict()
+V2G_Data_excel =  pd.ExcelFile(".\Dados\V2G_Data.xlsx")
+df_V2G_ExitRequired = V2G_Data_excel.parse("3 Energy Exit Required ",index_col=0)
+V2G_ExitRequired_dict = df_V2G_ExitRequired.to_dict()
+df_V2G_EinicialArriving = V2G_Data_excel.parse("2 Energy Inicial Arriving",index_col=0)
+V2G_EinicialArriving_dict = df_V2G_EinicialArriving.to_dict()
+df_V2G_Characteritics = V2G_Data_excel.parse("8 Characteritics D.",index_col=0)
+V2G_Characteritics_dict = df_V2G_Characteritics.to_dict()
+df_V2G_DischargePrice = V2G_Data_excel.parse("7 Disharge Price",index_col=0)
+V2G_DischargePrice_dict = df_V2G_DischargePrice.to_dict()
+df_V2G_ChargePrice = V2G_Data_excel.parse("6 Charge Price",index_col=0)
+V2G_ChargePrice_dict = df_V2G_ChargePrice.to_dict()
+df_V2G_ConexionStatus = V2G_Data_excel.parse("1 ConexionStatusV2G",index_col=0)
+V2G_ConexionStatus_dict = df_V2G_ConexionStatus.to_dict()
 #***********************************************************************************
 #                                 Defining Sets
 #***********************************************************************************
@@ -45,6 +58,7 @@ model.SetTimeIntervals = pyo.Set(initialize=df_Pload_Forecast.columns, doc='Set 
 model.LoadSet = pyo.Set(initialize=df_Pload_Forecast.index, doc='Set of Loads')
 model.GenSet = pyo.Set(initialize=df_Pgen_Forecast.index, doc='Set of Generatos')
 model.BatterySet = pyo.Set(initialize=df_PstorageChargeLimit.index, doc='Set of Energy Storage System')
+model.V2G_Set = pyo.Set(initialize=df_V2G_Characteritics.index, doc='Set of Electric Vehicles')
 #***********************************************************************************
 #                              Defining the parameter
 #***********************************************************************************
@@ -120,6 +134,16 @@ def Param_c_St_Dch_s_t(model, s, time):
 def Param_c_St_minRlx_s_t(model, s, time):
   return  PstorageChargePrice_dict[time][s]
 
+# Pv2gDischargeMax_v parameters: Contains the maximum power of discharging of each electrical vehicle
+@model.Param(model.V2G_Set)
+def Pv2gDischargeMax_v(model, v2g):
+  return V2G_Characteritics_dict["7 P Discharge Max (kW)"][v2g]
+
+# Pv2gChargeMax_v parameters: Contains the maximum power of charging of each electrical vehicle
+@model.Param(model.V2G_Set)
+def Pv2gChargeMax_v(model, v2g):
+  return V2G_Characteritics_dict["6 P Charge Max (kW)"][v2g]
+
 # model.EstorageMax_b: Contains the maximum energy storage capacity of each battery
 @model.Param(model.BatterySet)
 def EstorageMax_b(model, storage):
@@ -132,6 +156,37 @@ def ParamPstorageChargeLimit_b_t(model, storage, time):
 @model.Param(model.BatterySet, model.SetTimeIntervals)
 def ParamPstorageDischargeLimit_b_t(model, storage, time):
   return PstorageDischargeLimit_dict[time][storage]
+
+@model.Param(model.V2G_Set, model.SetTimeIntervals)
+def Param_c_EV_Dch_e_t(model, v2g, time):
+  return  V2G_DischargePrice_dict[time][v2g]
+
+@model.Param(model.V2G_Set, model.SetTimeIntervals)
+def Param_c_EV_Ch_e_t(model, v2g, time):
+  return  V2G_ChargePrice_dict[time][v2g]
+
+@model.Param(model.V2G_Set, model.SetTimeIntervals)
+def Param_c_EV_minRlx_e_t(model, v2g, time):
+  return  V2G_ChargePrice_dict[time][v2g]
+
+# Ev2gMax_v parameters: Contains the maximum capacity of each battery of each electrical Vehicle
+@model.Param(model.V2G_Set)
+def Ev2gMax_v(model, v2g):
+  return V2G_Characteritics_dict["5 E Capacity Max (kWh)"][v2g]
+
+# Ev2gInitial_v_t parameters: Contains the initial Energy of each battery of each electrical Vehicle at arriving
+@model.Param(model.V2G_Set, model.SetTimeIntervals)
+def Ev2gInitial_v_t(model, v2g, time):
+  return V2G_EinicialArriving_dict[time][v2g]
+
+@model.Param(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries)
+def XconexionStatus_v_t(model, v2g, time, w):
+  return V2G_ConexionStatus_dict[time][v2g]
+
+# ParamEv2gExitRequired_v_t: Contains the exit Energy of each battery required of each electrical Vehicle at exit
+@model.Param(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries)
+def ParamEv2gExitRequired_v_t(model, v2g, time, w):
+  return V2G_ExitRequired_dict[time][v2g]
 #****************************************************************************************
 #                            Defining Decision Variables
 #****************************************************************************************
@@ -177,14 +232,21 @@ model.Var_r_Down_imp_t_w = pyo.Var(model.SetTimeIntervals, model.SetSceneries, d
 
 model.VarP_Op_Exp_t = pyo.Var(model.SetTimeIntervals, domain = pyo.NonNegativeReals, initialize=0)
 
-#************************************************************************************
-#                            Mudança no Codigo
-#************************************************************************************
 model.X_imp_t = pyo.Var(model.SetTimeIntervals, domain=pyo.Binary, bounds=(0, 1), initialize=0)
 model.X_exp_t = pyo.Var(model.SetTimeIntervals, domain=pyo.Binary, bounds=(0, 1), initialize=0)
 model.XstorageCharge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, model.SetSceneries, domain = pyo.Binary, initialize = 0)
 model.XstorageDischarge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, model.SetSceneries, domain = pyo.Binary, initialize = 0)
 
+model.Xv2gCharge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, domain = pyo.Binary, initialize = 0)
+model.Xv2gDischarge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, domain = pyo.Binary, initialize = 0)
+
+
+def EnergyV2G_bounds(model, v2g, time, w):
+  lower_bound = 0
+  upper_bound = model.Ev2gMax_v[v2g]
+  return (lower_bound, upper_bound)
+
+model.VarEnergyV2G_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries , bounds=EnergyV2G_bounds)
 
 def EnergyStorage_bounds(model, storage, time, w):
   lower_bound = model.EstorageMax_b[storage] * StorageCharacteritics_dict["7 Energy Min (%)"][storage] / 100
@@ -207,13 +269,19 @@ def storageDischarge_bounds(model, storage, time, w):
   return (lower_bound, upper_bound)
 model.VarPstorageDischarge_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, model.SetSceneries, bounds=storageDischarge_bounds)
 
-
-def EnergyStorage_bounds(model, storage, time):
-  lower_bound = model.EstorageMax_b[storage] * StorageCharacteritics_dict["7 Energy Min (%)"][storage] / 100
-  upper_bound = model.EstorageMax_b[storage]
+def v2gDischarge_bounds(model, v2g, time, w):
+  lower_bound = 0
+  upper_bound = model.Pv2gDischargeMax_v[v2g]
   return (lower_bound, upper_bound)
-model.VarEnergyStorage_b_t = pyo.Var(model.BatterySet, model.SetTimeIntervals, bounds=EnergyStorage_bounds)
+model.VarPv2gDischarge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, bounds=v2gDischarge_bounds)
 
+def v2gCharge_bounds(model, v2g, time, w):
+  lower_bound = 0
+  upper_bound = model.Pv2gChargeMax_v[v2g]
+  return (lower_bound, upper_bound)
+model.VarPv2gCharge_v_t = pyo.Var(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, bounds=v2gCharge_bounds, domain = pyo.NonNegativeReals, initialize = 0)
+
+#model.VarP_Ev_minRlx_e_t_w = pyo.Var(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, bounds=v2gCharge_bounds, domain = pyo.NonNegativeReals, initialize = 0)
 
 def rule_power_reserve_Up(model, gen, time, w):
   return model.Var_r_UpGen_g_t_w[gen, time, w] <= model.VarR_UpGen_g_t[gen, time]
@@ -293,10 +361,39 @@ def rule_Inicial_Energy_Storage(model, s, time, w):
   DischargeEfficiency = 100 / StorageCharacteritics_dict["9 Discharge Efficiency (%)"][s]
   if time == 't_0':
     SoC = StorageCharacteritics_dict["10 Initial State (%)"][s]/100
-    return model.VarEnergyStorage_b_t[s, time] == model.EstorageMax_b[s] * SoC + (model.VarPstorageCharge_b_t[s, time, w] * ChargeEfficiency) - (model.VarPstorageDischarge_b_t[s, time, w] * DischargeEfficiency)
+    return model.VarEnergyStorage_b_t[s, time, w] == model.EstorageMax_b[s] * SoC + (model.VarPstorageCharge_b_t[s, time, w] * ChargeEfficiency) - (model.VarPstorageDischarge_b_t[s, time, w] * DischargeEfficiency)
   else:
-    return model.VarEnergyStorage_b_t[s, time] == model.VarEnergyStorage_b_t[s, model.SetTimeIntervals.prev(time)] + (model.VarPstorageCharge_b_t[s, time, w] * ChargeEfficiency) - (model.VarPstorageDischarge_b_t[s, time, w] * DischargeEfficiency)
+    return model.VarEnergyStorage_b_t[s, time, w] == model.VarEnergyStorage_b_t[s, model.SetTimeIntervals.prev(time), w] + (model.VarPstorageCharge_b_t[s, time, w] * ChargeEfficiency) - (model.VarPstorageDischarge_b_t[s, time, w] * DischargeEfficiency)
 model.Inicial_Energy_Storage_constraint = pyo.Constraint(model.BatterySet, model.SetTimeIntervals, model.SetSceneries, rule=rule_Inicial_Energy_Storage)
+
+
+def rule_Inicial_Energy_V2G(model, v2g, time, w):
+  if model.Ev2gInitial_v_t[v2g, time] != 0:
+    return model.VarEnergyV2G_v_t[v2g, time, w] == model.Ev2gInitial_v_t[v2g, time]
+  else:
+    return pyo.Constraint.Skip
+model.EnergyInitial_V2G_constraint = pyo.Constraint(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, rule=rule_Inicial_Energy_V2G)
+
+def rule_rolling_Energy_V2G(model, v2g, time, w):
+  if model.Ev2gInitial_v_t[v2g, time] == 0 and model.XconexionStatus_v_t[v2g, time, w] == 1:
+    return model.VarEnergyV2G_v_t[v2g, time, w] == model.VarEnergyV2G_v_t[v2g, model.SetTimeIntervals.prev(time), w] + model.VarPv2gCharge_v_t[v2g, time, w] - model.VarPv2gDischarge_v_t[v2g, time, w]
+  else:
+    return pyo.Constraint.Skip
+model.rolling_Energy_V2G_constraint = pyo.Constraint(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, rule=rule_rolling_Energy_V2G)
+
+def rule_ConexionStatus_Energy_V2G(model, v2g, time, w):
+  if model.XconexionStatus_v_t[v2g, time, w] == 0:
+    return model.VarEnergyV2G_v_t[v2g, time, w] == 0
+  else:
+    return pyo.Constraint.Skip
+model.ConexionStatus_Energy_V2G_constraint = pyo.Constraint(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, rule=rule_ConexionStatus_Energy_V2G)
+
+def rule_Exit_Energy_V2G(model, v2g, time, w):
+  if model.ParamEv2gExitRequired_v_t[v2g, time, w] != 0 and model.XconexionStatus_v_t[v2g, time, w] == 1:
+    return model.VarEnergyV2G_v_t[v2g, time, w] >= model.ParamEv2gExitRequired_v_t[v2g, time, w]
+  else:
+    return pyo.Constraint.Skip
+model.Exit_Energy_V2G_constraint = pyo.Constraint(model.V2G_Set, model.SetTimeIntervals, model.SetSceneries, rule=rule_Exit_Energy_V2G)
 #********************************************************************************************************
                                  # Objective Function Minimization of Cost
 #********************************************************************************************************
@@ -309,13 +406,21 @@ def objective_rule(model):
   F_RT = sum(pi_w[w] * (
           sum(model.Var_r_UpGen_g_t_w[gen, time, w] * model.Param_c_Gen_Up_g_t[gen, time] +
               model.Var_r_DownGen_g_t_w[gen, time, w] * model.Param_c_Gen_Down_g_t[gen, time] +
-              model.VarP_OpGen_g_t[gen, time] * model.Param_c_Gent_g_t[gen, time] for gen in model.GenSet for time in model.SetTimeIntervals)
+              model.VarP_OpGen_g_t[gen, time] * model.Param_c_Gent_g_t[gen, time] for gen in model.GenSet for time in
+              model.SetTimeIntervals)
           + sum(model.Var_r_Up_imp_t_w[time, w] * model.Param_c_UpImp_t[time] +
                 model.Var_r_Down_imp_t_w[time, w] * model.Param_c_DownImp_t[time] +
                 model.VarP_Op_imp_t[time] * model.Param_C_ImpPrice_t[time] -
                 model.VarP_Op_Exp_t[time] * model.Param_C_ExpPrice_t[time] for time in model.SetTimeIntervals)
-          + sum(model.VarPstorageCharge_b_t[s, time, w] * model.Param_c_St_Ch_s_t[s, time] + model.VarPstorageDischarge_b_t[s, time, w] * model.Param_c_St_Dch_s_t[s, time] +
-                model.VarP_St_minRlx_s_t_w[s, time, w] * model.Param_c_St_minRlx_s_t[s, time] for s in model.BatterySet for time in model.SetTimeIntervals)
+          + sum(
+    model.VarPstorageCharge_b_t[s, time, w] * model.Param_c_St_Ch_s_t[s, time] + model.VarPstorageDischarge_b_t[
+      s, time, w] * model.Param_c_St_Dch_s_t[s, time] +
+    model.VarP_St_minRlx_s_t_w[s, time, w] * model.Param_c_St_minRlx_s_t[s, time] for s in model.BatterySet for time in
+    model.SetTimeIntervals)
+          + sum(
+    model.VarPv2gDischarge_v_t[v2g, time, w] * model.Param_c_EV_Dch_e_t[v2g, time] - model.VarPv2gCharge_v_t[
+      v2g, time, w] * model.Param_c_EV_Ch_e_t[v2g, time]  for v2g in model.V2G_Set for time in
+    model.SetTimeIntervals)
   ) for w in model.SetSceneries)
   return F_DA + F_RT
 
@@ -393,4 +498,6 @@ def plot_profiles(varP_OpGen, varR_UpGen, varR_DownGen, varP_Op_imp, varP_Op_Exp
   plt.show()
 
 
-plot_profiles(df_VarP_OpGen_g_t.sum(axis=0), df_VarR_UpGen_g_t.sum(axis=0), df_VarR_DownGen_g_t.sum(axis=0), df_VarP_Op_imp_t, df_VarP_Op_Exp_t, df_Pload_Forecast.sum(axis=0), df_VarPstorageCharge_b_t.sum(axis=0), df_VarPstorageDischarge_b_t.sum(axis=0))
+plot_profiles(df_VarP_OpGen_g_t.sum(axis=0), df_VarR_UpGen_g_t.sum(axis=0), df_VarR_DownGen_g_t.sum(axis=0),
+              df_VarP_Op_imp_t, df_VarP_Op_Exp_t, df_Pload_Forecast.sum(axis=0), df_VarPstorageCharge_b_t.sum(axis=0),
+              df_VarPstorageDischarge_b_t.sum(axis=0))
