@@ -90,7 +90,7 @@ def csSchedule(model, cs, v2g, time):
   Events_list = ["9 Event 1", "10 Event 2"]
   for event in Events_list:
     df_Event = V2G_Data_excel.parse(event, index_col=0)
-    if df_Event["3 Place"][v2g] * V2G_ConexionStatus_dict[time][v2g] == cs:
+    if df_Event["3 Place"][v2g] * V2G_ConexionStatus_dict[time][v2g] == CS_Characteritics_dict['10 Place Start'][cs]:
       return 1
     else:
       return 0
@@ -374,22 +374,49 @@ model.csMinEq = pyo.Constraint(model.ChargeStation_Set, model.SetTimeIntervals, 
                                 doc='Maximum discharging power')
 
 # CS power considering charge and discharge power
-def _csPowerEq(m, c, v, t):
-    temp_val = []
-    if m.csSchedule[c, v, t] > 0: # To validate if the CS is being used
-      temp_val.append(m.v2gCharge[v, t] - m.v2gDischarge[v, t])
-    return m.csCharge[c, t] == sum(temp_val)
-model.csPowerEq = pyo.Constraint(model.ChargeStation_Set, model.V2G_Set, model.SetTimeIntervals, rule=_csPowerEq,
-                                    doc='Charging station power')
+def _csPowerEq(m, c, v, t, w):
+  # To validate if the CS is being used
+  if m.csSchedule[c, v, t] > 0:
+    # Adjusted variable names to match the existing model variables
+    charge_power = m.VarPv2gCharge_v_t[v, t, w]
+    discharge_power = m.Xv2gDischarge_v_t[v, t, w]  # Use the correct variable name
+    # Define the constraint using the correct charge and discharge power variables
+    return m.csCharge[c, t] == charge_power - discharge_power
+  else:
+    return pyo.Constraint.Skip
+
+
+# Apply the constraint rule
+model.csPowerEq = pyo.Constraint(
+  model.ChargeStation_Set,
+  model.V2G_Set,
+  model.SetTimeIntervals,
+  model.SetSceneries,
+  rule=_csPowerEq,
+)
 
 # CS power considering charge and discharge power considering the efficiences
-def _csNetChargeEq(m, c, v, t):
-    temp_val = []
-    if m.csSchedule[c, v, t] > 0:
-      temp_val.append(m.v2gCharge[v, t] * m.v2gChEff[v] - m.v2gDischarge[v, t] / m.v2gDchEff[v])
+def _csNetChargeEq(m, c, v, t, w):
+  temp_val = []
+  # Ensure the correct variable names are used
+  if m.csSchedule[c, v, t] > 0:
+    charge_power = m.VarPv2gCharge_v_t[v, t, w]
+    discharge_power = m.Xv2gDischarge_v_t[v, t, w]  # Use the correct variable name
+    temp_val.append(charge_power - discharge_power)
     return m.csNetCharge[c, t] == sum(temp_val)
-model.csNetChargeEq = pyo.Constraint(model.ChargeStation_Set, model.V2G_Set, model.SetTimeIntervals, rule=_csNetChargeEq,
-                                        doc='Net charging power')
+  else:
+    return pyo.Constraint.Skip
+
+
+# Apply the constraint rule
+model.csNetChargeEq = pyo.Constraint(
+  model.ChargeStation_Set,
+  model.V2G_Set,
+  model.SetTimeIntervals,
+  model.SetSceneries,
+  rule=_csNetChargeEq,
+)
+
 
 #
 def rule_imported_power(model, time):
