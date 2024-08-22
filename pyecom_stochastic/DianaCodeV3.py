@@ -1,4 +1,5 @@
 cplex_path = r"C:\Program Files\IBM\ILOG\CPLEX_Studio129\cplex\bin\x64_win64\cplex.exe"
+import numpy as np
 import pyomo.environ as pyo
 import pandas as pd
 model = pyo.ConcreteModel("Energy Community")
@@ -48,6 +49,11 @@ df_V2G_ChargePrice = V2G_Data_excel.parse("6 Charge Price",index_col=0)
 V2G_ChargePrice_dict = df_V2G_ChargePrice.to_dict()
 df_V2G_ConexionStatus = V2G_Data_excel.parse("1 ConexionStatusV2G",index_col=0)
 V2G_ConexionStatus_dict = df_V2G_ConexionStatus.to_dict()
+ChargeStation_Data_excel =  pd.ExcelFile(".\Dados\ChargeStation_Data.xlsx")
+df_PcsChargeLimit = ChargeStation_Data_excel.parse("1 P Charge Limit (kW)",index_col=0)
+PcsChargeLimit_dict = df_PcsChargeLimit.to_dict()
+df_CS_Characteritics = ChargeStation_Data_excel.parse("3 Characteritics D.",index_col=0)
+CS_Characteritics_dict = df_CS_Characteritics.to_dict()
 #***********************************************************************************
 #                                 Defining Sets
 #***********************************************************************************
@@ -59,9 +65,36 @@ model.LoadSet = pyo.Set(initialize=df_Pload_Forecast.index, doc='Set of Loads')
 model.GenSet = pyo.Set(initialize=df_Pgen_Forecast.index, doc='Set of Generatos')
 model.BatterySet = pyo.Set(initialize=df_PstorageChargeLimit.index, doc='Set of Energy Storage System')
 model.V2G_Set = pyo.Set(initialize=df_V2G_Characteritics.index, doc='Set of Electric Vehicles')
+model.ChargeStation_Set = pyo.Set(initialize=df_CS_Characteritics.index, doc='Set of Charge Station')
 #***********************************************************************************
 #                              Defining the parameter
 #***********************************************************************************
+@model.Param(model.ChargeStation_Set)
+def csMin(model, cs):
+  return CS_Characteritics_dict['6 P Discharge Max (kW)'][cs]
+
+@model.Param(model.ChargeStation_Set)
+def csMax(model, cs):
+  return CS_Characteritics_dict['5 P Charge Max (kW)'][cs]
+
+@model.Param(model.ChargeStation_Set)
+def csChEff(model, cs):
+  return CS_Characteritics_dict['7 Charge Efficiency (%)'][cs] * 0.01
+
+@model.Param(model.ChargeStation_Set)
+def csDchEff(model, cs):
+  return CS_Characteritics_dict['8 Discharge Efficiency (%)'][cs] * 0.01
+
+@model.Param(model.ChargeStation_Set, model.V2G_Set, model.SetTimeIntervals)
+def csSchedule(model, cs, v2g, time):
+  Events_list = ["9 Event 1", "10 Event 2"]
+  for event in Events_list:
+    df_Event = V2G_Data_excel.parse(event, index_col=0)
+    if df_Event["3 Place"][v2g] * V2G_ConexionStatus_dict[time][v2g] == cs:
+      return 1
+    else:
+      return 0
+
 @model.Param(model.GenSet)
 def Param_P_MaxGen_g(model, gen):
   return GenCharacteritics_dict['6 P Max. (kW)'][gen]
@@ -190,6 +223,13 @@ def ParamEv2gExitRequired_v_t(model, v2g, time, w):
 #****************************************************************************************
 #                            Defining Decision Variables
 #****************************************************************************************
+# Variables
+model.csNetCharge = pyo.Var(model.ChargeStation_Set, model.SetTimeIntervals, within=pyo.NonNegativeReals, initialize=0,
+                            doc='Net charging power')
+
+model.csCharge = pyo.Var(model.ChargeStation_Set, model.SetTimeIntervals, within=pyo.NonNegativeReals, initialize=0,
+                            doc='Charging power')
+
 model.VarP_OpGen_g_t = pyo.Var(model.GenSet, model.SetTimeIntervals, domain = pyo.NonNegativeReals, initialize=0)
 
 def UpGen_bounds(model, gen, time):
@@ -321,6 +361,36 @@ model.power_export_constraint = pyo.Constraint(model.SetTimeIntervals, rule=rule
 #************************************************************************************
 #                            Constraint
 #************************************************************************************
+
+# Limit for the CS power
+def _csMaxEq(m, c, t):
+    return m.csCharge[c, t] <= m.csMax[c]
+    model.csMaxEq = pe.Constraint(model.ChargeStation_Set, model.SetTimeIntervals, rule=_csMaxEq,
+                                doc='Maximum charging power')
+# Limit for the CS discharge power
+def _csMinEq(m, c, t):
+    return m.csCharge[c, t] >= -m.csMin[c]
+model.csMinEq = pyo.Constraint(model.ChargeStation_Set, model.SetTimeIntervals, rule=_csMinEq,
+                                doc='Maximum discharging power')
+
+# CS power considering charge and discharge power
+def _csPowerEq(m, c, v, t):
+    temp_val = []
+    if m.csSchedule[c, v, t] > 0: # To validate if the CS is being used
+      temp_val.append(m.v2gCharge[v, t] - m.v2gDischarge[v, t])
+    return m.csCharge[c, t] == sum(temp_val)
+model.csPowerEq = pyo.Constraint(model.ChargeStation_Set, model.V2G_Set, model.SetTimeIntervals, rule=_csPowerEq,
+                                    doc='Charging station power')
+
+# CS power considering charge and discharge power considering the efficiences
+def _csNetChargeEq(m, c, v, t):
+    temp_val = []
+    if m.csSchedule[c, v, t] > 0:
+      temp_val.append(m.v2gCharge[v, t] * m.v2gChEff[v] - m.v2gDischarge[v, t] / m.v2gDchEff[v])
+    return m.csNetCharge[c, t] == sum(temp_val)
+model.csNetChargeEq = pyo.Constraint(model.ChargeStation_Set, model.V2G_Set, model.SetTimeIntervals, rule=_csNetChargeEq,
+                                        doc='Net charging power')
+
 #
 def rule_imported_power(model, time):
   return model.VarP_Op_imp_t[time] == model.Param_P_MaxImp_t[time] * model.X_imp_t[time]
